@@ -52,7 +52,7 @@ function TermTrackerList() {
 
     try {
       const response = await fetch(
-        'https://australia-southeast1-empowered-hoops-term-tracker.cloudfunctions.net/listTermTrackers'
+        'https://us-central1-empowered-hoops-term-tra-341d5.cloudfunctions.net/listTermTrackers'
       );
 
       if (!response.ok) {

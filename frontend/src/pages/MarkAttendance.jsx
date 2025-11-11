@@ -37,7 +37,7 @@ const fetchAttendanceData = async () => {
 
   try {
     const response = await fetch(
-      `https://australia-southeast1-empowered-hoops-term-tracker.cloudfunctions.net/getAttendanceData?spreadsheetId=${spreadsheetId}&sheetName=${encodeURIComponent(programType)}`
+      `https://us-central1-empowered-hoops-term-tra-341d5.cloudfunctions.net/getAttendanceData?spreadsheetId=${spreadsheetId}&sheetName=${encodeURIComponent(programType)}`
     );
     
     if (!response.ok) {
@@ -99,7 +99,7 @@ const handleSave = async () => {
   
   try {
     const response = await fetch(
-      'https://australia-southeast1-empowered-hoops-term-tracker.cloudfunctions.net/updateAttendance',
+      'https://us-central1-empowered-hoops-term-tra-341d5.cloudfunctions.net/updateAttendance',
       {
         method: 'POST',
         headers: {

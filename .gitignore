@@ -69,3 +69,9 @@ node_modules/
 .dataconnect
 backend/credentials/
 backend/credentials/
+
+# Additional sensitive files
+.env.local
+.DS_Store
+*-credentials.json
+firebase-adminsdk-*.json

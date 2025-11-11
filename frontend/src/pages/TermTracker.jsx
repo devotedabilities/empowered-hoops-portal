@@ -3,7 +3,7 @@ import TermConfigForm from '../components/term-tracker/TermConfigForm';
 import AthleteForm from '../components/term-tracker/AthleteForm';
 import ConfirmationScreen from '../components/term-tracker/ConfirmationScreen';
 
-const API_ENDPOINT = 'https://australia-southeast1-empowered-hoops-term-tracker.cloudfunctions.net/createTermTracker';
+const API_ENDPOINT = 'https://us-central1-empowered-hoops-term-tra-341d5.cloudfunctions.net/createTermTracker';
 
 function TermTracker({ user }) {
   const [step, setStep] = useState(1);

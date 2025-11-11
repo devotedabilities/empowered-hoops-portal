@@ -520,7 +520,7 @@ exports.listTermTrackers = async (req, res) => {
 // ============================================
 // GET ATTENDANCE DATA ENDPOINT
 // ============================================
-exports.getAttendanceData = async (req, res) => {
+exports.getAttendanceData = onRequest(async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -653,7 +653,7 @@ const { spreadsheetId, sheetName } = req.query;
       error: error.message
     });
   }
-};
+});
 
 // ============================================
 // SEND WELCOME EMAIL ENDPOINT
@@ -713,7 +713,7 @@ exports.sendWelcomeEmail = onRequest(async (req, res) => {
 // ============================================
 // UPDATE ATTENDANCE ENDPOINT
 // ============================================
-exports.updateAttendance = async (req, res) => {
+exports.updateAttendance = onRequest(async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -851,7 +851,7 @@ exports.updateAttendance = async (req, res) => {
       error: error.message
     });
   }
-};
+});
 
 // ============================================
 // SYNC ATTENDANCE TO MASTER SHEET
