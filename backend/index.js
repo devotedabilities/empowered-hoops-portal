@@ -770,24 +770,33 @@ exports.updateAttendance = async (req, res) => {
     
     // Batch write to Firestore
     const batch = db.batch();
-    
+    let firestoreRecordCount = 0;
+
+    console.log('Processing attendance data:', {
+      athleteCount: Object.keys(attendance).length,
+      termConfig: termConfig,
+      sessionDate: sessionDate
+    });
+
     for (const [athleteId, isPresent] of Object.entries(attendance)) {
       const rowNumber = parseInt(athleteId) + 4;
       const mark = isPresent ? 'Attended' : '';
-      
+
+      console.log(`Athlete ${athleteId}: ${isPresent ? 'Present' : 'Absent'}`);
+
       // Update sheet
       updates.push({
         range: `'${sheetName}'!${sessionColLetter}${rowNumber}`,
         values: [[mark]]
       });
-      
-      // Save to Firestore
+
+      // Save to Firestore (only for present athletes)
       if (isPresent && athleteRows[parseInt(athleteId) - 1]) {
         const athleteRow = athleteRows[parseInt(athleteId) - 1];
         const athleteName = athleteRow[0];
         const ratio = athleteRow[1] || 'N/A';
         const paymentType = athleteRow[2] || 'Private';
-        
+
         const attendanceRecord = {
           date: sessionDate,
           program: termConfig?.programLabel || sheetName,
@@ -803,15 +812,19 @@ exports.updateAttendance = async (req, res) => {
           sessionNumber: parseInt(sessionNumber),
           timestamp: admin.firestore.FieldValue.serverTimestamp()
         };
-        
+
+        console.log('Creating Firestore record:', attendanceRecord);
+
         const docRef = db.collection('attendance').doc();
         batch.set(docRef, attendanceRecord);
+        firestoreRecordCount++;
       }
     }
 
     // Commit Firestore batch
+    console.log(`Committing ${firestoreRecordCount} records to Firestore`);
     await batch.commit();
-    console.log('Saved attendance records to Firestore');
+    console.log(`✅ Successfully saved ${firestoreRecordCount} attendance records to Firestore`);
 
     // Update the sheet
     await sheets.spreadsheets.values.batchUpdate({
