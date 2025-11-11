@@ -725,6 +725,11 @@ exports.updateAttendance = async (req, res) => {
 
   const { spreadsheetId, sessionNumber, attendance, sheetName, termConfig } = req.body;
 
+  // EMERGENCY DEBUG LOGGING
+  console.error('🚨 RAW REQUEST BODY:', JSON.stringify(req.body, null, 2));
+  console.error('🚨 ATTENDANCE DATA:', JSON.stringify(attendance, null, 2));
+  console.error('🚨 TERM CONFIG:', JSON.stringify(termConfig, null, 2));
+
   if (!spreadsheetId || !sessionNumber || !attendance) {
     return res.status(400).json({
       success: false,
@@ -782,7 +787,7 @@ exports.updateAttendance = async (req, res) => {
       const rowNumber = parseInt(athleteId) + 4;
       const mark = isPresent ? 'Attended' : '';
 
-      console.log(`Athlete ${athleteId}: ${isPresent ? 'Present' : 'Absent'}`);
+      console.error(`🔍 Athlete ${athleteId}: isPresent=${isPresent}, type=${typeof isPresent}`);
 
       // Update sheet
       updates.push({
@@ -791,7 +796,12 @@ exports.updateAttendance = async (req, res) => {
       });
 
       // Save to Firestore (only for present athletes)
-      if (isPresent && athleteRows[parseInt(athleteId) - 1]) {
+      const athleteRowIndex = parseInt(athleteId) - 1;
+      const athleteRowExists = !!athleteRows[athleteRowIndex];
+
+      console.error(`🔍 Checking Firestore condition: isPresent=${isPresent}, athleteRowExists=${athleteRowExists}, athleteRowIndex=${athleteRowIndex}`);
+
+      if (isPresent && athleteRows[athleteRowIndex]) {
         const athleteRow = athleteRows[parseInt(athleteId) - 1];
         const athleteName = athleteRow[0];
         const ratio = athleteRow[1] || 'N/A';
