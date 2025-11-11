@@ -1,0 +1,256 @@
+/* ===== EXPORTABLE SUMMARY ===== */
+
+.export-container {
+  margin-top: 2rem;
+}
+
+.exportable-summary {
+  background: white;
+  padding: 3rem;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  max-width: 800px;
+  margin: 0 auto 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== HEADER ===== */
+
+.summary-header {
+  text-align: center;
+  padding-bottom: 2rem;
+  border-bottom: 3px solid #8b5cf6;
+  margin-bottom: 2rem;
+}
+
+.summary-logo h1 {
+  font-size: 2rem;
+  color: #8b5cf6;
+  margin-bottom: 0.5rem;
+  font-weight: 800;
+}
+
+.summary-logo p {
+  color: #6b7280;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+/* ===== SECTIONS ===== */
+
+.summary-section {
+  margin-bottom: 2rem;
+}
+
+.summary-section h2 {
+  font-size: 1.5rem;
+  color: #2d3748;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+/* ===== DETAILS GRID ===== */
+
+.summary-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.summary-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.detail-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-value {
+  font-size: 1.125rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* ===== ATHLETES LIST ===== */
+
+.summary-athletes-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.summary-athlete-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.athlete-number {
+  font-weight: 700;
+  color: #8b5cf6;
+  font-size: 1.125rem;
+  min-width: 30px;
+}
+
+.athlete-name {
+  flex: 1;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.athlete-ratio {
+  background: #8b5cf6;
+  color: white;
+  padding: 0.25rem 0.625rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* ===== FOOTER ===== */
+
+.summary-footer {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e5e7eb;
+  text-align: center;
+}
+
+.summary-footer-text {
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.summary-date {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  font-style: italic;
+  margin-top: 1rem;
+}
+
+/* ===== EXPORT ACTIONS ===== */
+
+.export-actions {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.btn-export {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-export:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+.btn-export:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.export-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.export-hint {
+  margin-top: 1rem;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 768px) {
+  .exportable-summary {
+    padding: 2rem 1.5rem;
+  }
+
+  .summary-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-athletes-list {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-logo h1 {
+    font-size: 1.5rem;
+  }
+
+  .btn-export {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+}
+
+/* ===== PRINT STYLES (for backup) ===== */
+
+@media print {
+  .export-actions {
+    display: none;
+  }
+
+  .exportable-summary {
+    box-shadow: none;
+    border: none;
+  }
+}
+
+.enrollment-count {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.count-number {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #8b5cf6;
+  line-height: 1;
+}
