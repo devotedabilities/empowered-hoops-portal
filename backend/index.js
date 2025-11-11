@@ -11,12 +11,14 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 // ============================================
-// CONFIGURATION - YOUR SPECIFIC VALUES
+// CONFIGURATION - ENVIRONMENT VARIABLES
 // ============================================
 const CONFIG = {
-  TEMPLATE_SPREADSHEET_ID: '15wTazkxoURaqHk9CTSbBxQr_SUZ38-uJSanPE1PtM0g',
-  SERVICE_ACCOUNT_EMAIL: 'term-tracker-service@empowered-hoops-term-tracker.iam.gserviceaccount.com',
-  ADMIN_EMAIL: 'info@devotedabilities.com',
+  TEMPLATE_SPREADSHEET_ID: process.env.TEMPLATE_SPREADSHEET_ID || '15wTazkxoURaqHk9CTSbBxQr_SUZ38-uJSanPE1PtM0g',
+  SERVICE_ACCOUNT_EMAIL: process.env.SERVICE_ACCOUNT_EMAIL || 'term-tracker-service@empowered-hoops-term-tracker.iam.gserviceaccount.com',
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'info@devotedabilities.com',
+  PARENT_FOLDER_ID: process.env.PARENT_FOLDER_ID || '18MaTO0Vp9X-kMjeFUDie_Vyq2BnNgruU',
+  MASTER_SHEET_ID: process.env.MASTER_SHEET_ID || '1W8vilXx7JcRDTiRJR5qddWzx8NXO7rvO',
 };
 
 // ============================================
@@ -178,7 +180,7 @@ async function createSpreadsheetFromTemplate(drive, data) {
     fileId: CONFIG.TEMPLATE_SPREADSHEET_ID,
     requestBody: {
       name: spreadsheetName,
-      parents: ['18MaTO0Vp9X-kMjeFUDie_Vyq2BnNgruU'],
+      parents: [CONFIG.PARENT_FOLDER_ID],
     },
     supportsAllDrives: true,
   });
@@ -373,7 +375,7 @@ async function sendConfirmationEmail(data, spreadsheetId) {
   // Email content
   const mailOptions = {
     from: `"Empowered Hoops Term Tracker" <${process.env.EMAIL_USER}>`,
-    to: 'david@devotedabilities.com, info@empoweredhoops.com.au',
+    to: process.env.NOTIFICATION_EMAILS || 'david@devotedabilities.com, info@empoweredhoops.com.au',
     subject: `New Term Tracker Created - ${termConfig.programType} - ${termConfig.termName} ${termConfig.year || ''}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -455,8 +457,8 @@ exports.listTermTrackers = async (req, res) => {
     console.log('Authenticated with Google APIs');
 
     // 2. List all files in the Term Trackers folder
-    const folderId = '18MaTO0Vp9X-kMjeFUDie_Vyq2BnNgruU'; // Your shared folder ID
-    
+    const folderId = CONFIG.PARENT_FOLDER_ID;
+
     const response = await drive.files.list({
       q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,
       fields: 'files(id, name, createdTime, modifiedTime, webViewLink, owners)',
@@ -859,9 +861,8 @@ exports.updateAttendance = onRequest(async (req, res) => {
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 
 exports.syncAttendanceToMaster = onDocumentCreated('attendance/{docId}', async (event) => {
-  const MASTER_SHEET_ID = '1W8vilXx7JcRDTiRJR5qddWzx8NXO7rvO';
   const MASTER_SHEET_NAME = 'Attendance & Payments';
-  
+
   console.log('Syncing attendance to master sheet...');
   
   try {
@@ -887,7 +888,7 @@ exports.syncAttendanceToMaster = onDocumentCreated('attendance/{docId}', async (
     
     // Append to master sheet
     await sheets.spreadsheets.values.append({
-      spreadsheetId: MASTER_SHEET_ID,
+      spreadsheetId: CONFIG.MASTER_SHEET_ID,
       range: `'${MASTER_SHEET_NAME}'!A:J`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {

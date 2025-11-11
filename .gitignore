@@ -64,14 +64,38 @@ node_modules/
 
 # dotenv environment variables file
 .env
+.env.local
+.env.development
+.env.production
+.env.test
+.env*.local
 
 # dataconnect generated files
 .dataconnect
+
+# Credentials and sensitive files
 backend/credentials/
-backend/credentials/
+credentials/
+*-credentials.json
+*credentials*.json
+firebase-adminsdk-*.json
+service-account*.json
+*.pem
+*.key
+*.p12
+*.pfx
 
 # Additional sensitive files
-.env.local
 .DS_Store
-*-credentials.json
-firebase-adminsdk-*.json
+*.save
+*.bak
+*~
+
+# Security scanner results
+.secrets-baseline
+secrets-report.json
+
+# Local test files that may contain sensitive data
+test-drive.js
+test-email.js
+test-*.local.js
