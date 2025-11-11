@@ -13,7 +13,8 @@
 
 .admin-header h1 {
   margin: 0;
-  color: #2c3e50;
+  color: var(--text-primary);
+  font-size: var(--font-size-3xl);
 }
 
 .admin-actions {
@@ -22,66 +23,68 @@
 }
 
 .btn-primary, .btn-secondary, .btn-sm {
-  padding: 10px 20px;
+  padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 5px;
+  border-radius: var(--border-radius-md);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  transition: all var(--transition-base);
 }
 
 .btn-primary {
-  background: #ff6b35;
+  background: var(--gradient-primary);
   color: white;
+  box-shadow: var(--shadow-primary);
 }
 
 .btn-primary:hover {
-  background: #ff5522;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-primary-lg);
 }
 
 .btn-secondary {
-  background: #6c757d;
+  background: var(--color-gray-500);
   color: white;
 }
 
 .btn-secondary:hover {
-  background: #5a6268;
+  background: var(--color-gray-600);
 }
 
 .btn-sm {
-  padding: 5px 12px;
-  font-size: 12px;
-  background: #007bff;
+  padding: 0.5rem 1rem;
+  font-size: var(--font-size-xs);
+  background: var(--color-info);
   color: white;
 }
 
 .btn-sm:hover {
-  background: #0056b3;
+  background: var(--color-info-dark);
 }
 
 .btn-danger {
-  background: #dc3545 !important;
+  background: var(--color-error) !important;
 }
 
 .btn-danger:hover {
-  background: #c82333 !important;
+  background: var(--color-error-dark) !important;
 }
 
 .btn-role-admin {
-  background: #ff6b35 !important;
+  background: var(--color-primary) !important;
 }
 
 .btn-role-admin:hover {
-  background: #ff5522 !important;
+  background: var(--color-primary-dark) !important;
 }
 
 .btn-role-coach {
-  background: #007bff !important;
+  background: var(--color-info) !important;
 }
 
 .btn-role-coach:hover {
-  background: #0056b3 !important;
+  background: var(--color-info-dark) !important;
 }
 
 .message {
@@ -114,17 +117,17 @@
 }
 
 .add-user-form {
-  background: #f8f9fa;
-  padding: 25px;
-  border-radius: 8px;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: var(--bg-tertiary);
+  padding: var(--space-xl);
+  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--space-xl);
+  box-shadow: var(--shadow-md);
 }
 
 .add-user-form h3 {
   margin-top: 0;
-  margin-bottom: 20px;
-  color: #2c3e50;
+  margin-bottom: var(--space-lg);
+  color: var(--text-primary);
 }
 
 .form-group {
@@ -150,7 +153,8 @@
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #ff6b35;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
 .users-table {
@@ -166,11 +170,11 @@
 }
 
 .users-table th {
-  background: #2c3e50;
+  background: var(--gradient-secondary);
   color: white;
-  padding: 15px;
+  padding: var(--space-md);
   text-align: left;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .users-table td {
@@ -191,12 +195,12 @@
 }
 
 .badge.admin {
-  background: #ff6b35;
+  background: var(--gradient-primary);
   color: white;
 }
 
 .badge.coach {
-  background: #007bff;
+  background: var(--color-info);
   color: white;
 }
 

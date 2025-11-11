@@ -1,0 +1,134 @@
+/* ============================================
+   EMPOWERED HOOPS - CSS VARIABLES
+   Centralized design tokens for consistency
+   ============================================ */
+
+:root {
+  /* ===== BRAND COLORS ===== */
+  --color-primary: #8b5cf6;
+  --color-primary-dark: #7c3aed;
+  --color-primary-light: #a78bfa;
+
+  --color-secondary: #667eea;
+  --color-secondary-dark: #764ba2;
+
+  --color-success: #10b981;
+  --color-success-dark: #059669;
+
+  --color-warning: #f59e0b;
+  --color-warning-dark: #d97706;
+
+  --color-error: #ef4444;
+  --color-error-dark: #dc2626;
+
+  --color-info: #3b82f6;
+  --color-info-dark: #2563eb;
+
+  /* ===== GRADIENTS ===== */
+  --gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-dark) 100%);
+  --gradient-success: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%);
+  --gradient-warning: linear-gradient(135deg, var(--color-warning) 0%, var(--color-warning-dark) 100%);
+
+  /* ===== NEUTRAL COLORS ===== */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  /* ===== TEXT COLORS ===== */
+  --text-primary: var(--color-gray-800);
+  --text-secondary: var(--color-gray-500);
+  --text-light: var(--color-gray-400);
+
+  /* ===== BACKGROUND COLORS ===== */
+  --bg-primary: var(--color-white);
+  --bg-secondary: var(--color-gray-50);
+  --bg-tertiary: var(--color-gray-100);
+
+  /* ===== BORDER ===== */
+  --border-color: var(--color-gray-200);
+  --border-color-light: var(--color-gray-100);
+  --border-color-dark: var(--color-gray-300);
+
+  --border-width: 2px;
+  --border-radius-sm: 6px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  --border-radius-full: 9999px;
+
+  /* ===== SPACING ===== */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+
+  /* ===== TYPOGRAPHY ===== */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+  --font-size-4xl: 2.5rem;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ===== SHADOWS ===== */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.2);
+  --shadow-2xl: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+  --shadow-primary: 0 4px 12px rgba(139, 92, 246, 0.3);
+  --shadow-primary-lg: 0 6px 20px rgba(139, 92, 246, 0.4);
+  --shadow-success: 0 4px 12px rgba(16, 185, 129, 0.3);
+  --shadow-success-lg: 0 6px 20px rgba(16, 185, 129, 0.4);
+
+  /* ===== TRANSITIONS ===== */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
+  --transition-slow: 0.3s ease;
+
+  /* ===== LAYOUT ===== */
+  --sidebar-width: 280px;
+  --header-height: 64px;
+  --max-width-content: 1400px;
+  --max-width-narrow: 800px;
+  --max-width-medium: 1000px;
+  --max-width-wide: 1200px;
+
+  /* ===== Z-INDEX ===== */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+}

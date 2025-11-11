@@ -573,10 +573,26 @@ const { spreadsheetId, sheetName } = req.query;
       });
     }
 
+    // Parse term config from rows 1-2
+    // Row 1: [programType, 'Time:', sessionTime, sessionDay]
+    // Row 2: [termName, 'Coach:', coachName]
+    const headerRow1 = rows[0] || [];
+    const headerRow2 = rows[1] || [];
+
+    const termConfig = {
+      programType: headerRow1[0] || sheetName,
+      sessionTime: headerRow1[2] || '',
+      sessionDay: headerRow1[3] || '',
+      termName: headerRow2[0] || '',
+      coachName: headerRow2[2] || 'Unknown Coach',
+      programLabel: `${headerRow1[0] || sheetName} — ${headerRow2[0] || 'Term'}`,
+      duration: 1.5 // Default duration, can be customized if stored in sheet
+    };
+
     // Parse session dates from row 3 (index 2)
     const sessionRow = rows[2] || [];
     const sessions = [];
-    
+
     for (let i = 3; i <= 12; i++) { // Columns D-M (indices 3-12)
       const dateValue = sessionRow[i];
       if (dateValue) {
@@ -596,14 +612,14 @@ const { spreadsheetId, sheetName } = req.query;
     for (let i = 4; i < rows.length; i++) {
       const row = rows[i];
       const athleteName = row[0];
-      
+
       // Skip empty rows
       if (!athleteName || athleteName.trim() === '') {
         continue;
       }
 
       const athleteId = String(i - 3); // 1-based athlete ID
-      
+
       athletes.push({
         id: athleteId,
         name: athleteName.trim()
@@ -619,12 +635,14 @@ const { spreadsheetId, sheetName } = req.query;
     }
 
     console.log(`Found ${athletes.length} athletes and ${sessions.length} sessions`);
+    console.log('Term config:', termConfig);
 
     res.status(200).json({
       success: true,
       athletes: athletes,
       sessions: sessions,
-      attendance: attendance
+      attendance: attendance,
+      termConfig: termConfig
     });
 
   } catch (error) {
@@ -752,24 +770,33 @@ exports.updateAttendance = async (req, res) => {
     
     // Batch write to Firestore
     const batch = db.batch();
-    
+    let firestoreRecordCount = 0;
+
+    console.log('Processing attendance data:', {
+      athleteCount: Object.keys(attendance).length,
+      termConfig: termConfig,
+      sessionDate: sessionDate
+    });
+
     for (const [athleteId, isPresent] of Object.entries(attendance)) {
       const rowNumber = parseInt(athleteId) + 4;
       const mark = isPresent ? 'Attended' : '';
-      
+
+      console.log(`Athlete ${athleteId}: ${isPresent ? 'Present' : 'Absent'}`);
+
       // Update sheet
       updates.push({
         range: `'${sheetName}'!${sessionColLetter}${rowNumber}`,
         values: [[mark]]
       });
-      
-      // Save to Firestore
+
+      // Save to Firestore (only for present athletes)
       if (isPresent && athleteRows[parseInt(athleteId) - 1]) {
         const athleteRow = athleteRows[parseInt(athleteId) - 1];
         const athleteName = athleteRow[0];
         const ratio = athleteRow[1] || 'N/A';
         const paymentType = athleteRow[2] || 'Private';
-        
+
         const attendanceRecord = {
           date: sessionDate,
           program: termConfig?.programLabel || sheetName,
@@ -785,15 +812,19 @@ exports.updateAttendance = async (req, res) => {
           sessionNumber: parseInt(sessionNumber),
           timestamp: admin.firestore.FieldValue.serverTimestamp()
         };
-        
+
+        console.log('Creating Firestore record:', attendanceRecord);
+
         const docRef = db.collection('attendance').doc();
         batch.set(docRef, attendanceRecord);
+        firestoreRecordCount++;
       }
     }
 
     // Commit Firestore batch
+    console.log(`Committing ${firestoreRecordCount} records to Firestore`);
     await batch.commit();
-    console.log('Saved attendance records to Firestore');
+    console.log(`✅ Successfully saved ${firestoreRecordCount} attendance records to Firestore`);
 
     // Update the sheet
     await sheets.spreadsheets.values.batchUpdate({
