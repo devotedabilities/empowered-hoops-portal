@@ -796,18 +796,21 @@ exports.updateAttendance = onRequest(async (req, res) => {
         values: [[mark]]
       });
 
-      // Save to Firestore (only for present athletes)
-      if (isPresent && athleteRows[parseInt(athleteId) - 1]) {
+      // Save to Firestore (for ALL athletes - both attended and absent)
+      if (athleteRows[parseInt(athleteId) - 1]) {
         const athleteRow = athleteRows[parseInt(athleteId) - 1];
         const athleteName = athleteRow[0];
         const ratio = athleteRow[1] || 'N/A';
         const paymentType = athleteRow[2] || 'Private';
 
+        // Use dropdown values: "attended" or "did not attend"
+        const status = isPresent ? 'attended' : 'did not attend';
+
         const attendanceRecord = {
           date: sessionDate,
           program: termConfig?.programLabel || sheetName,
           athlete: athleteName,
-          status: 'Attended',
+          status: status,
           sessionType: 'Group',
           coach: termConfig?.coachName || 'Unknown',
           duration: termConfig?.duration || 1.5,
@@ -828,7 +831,7 @@ exports.updateAttendance = onRequest(async (req, res) => {
     }
 
     // Commit Firestore batch
-    console.log(`Committing ${firestoreRecordCount} records to Firestore`);
+    console.log(`Committing ${firestoreRecordCount} records to Firestore (all athletes - attended and absent)`);
     await batch.commit();
     console.log(`✅ Successfully saved ${firestoreRecordCount} attendance records to Firestore`);
 
