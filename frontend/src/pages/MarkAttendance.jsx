@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import './MarkAttendance.css';
+import CoachNotes from '../components/CoachNotes';
+import { noteToDisplayText } from '../utils/coachNotesSchema';
 
 function MarkAttendance() {
   const { trackerId } = useParams();
@@ -18,6 +20,11 @@ function MarkAttendance() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Coach notes state
+  const [showNotesSection, setShowNotesSection] = useState(false);
+  const [currentNoteAthlete, setCurrentNoteAthlete] = useState(null);
+  const [athleteNotes, setAthleteNotes] = useState({});
   
 
   // Generate session options (1-10)
@@ -96,7 +103,7 @@ const handleSave = async () => {
   console.log('Saving attendance for session:', selectedSession);
   setSaving(true);
   setSaveSuccess(false);
-  
+
   try {
     const response = await fetch(
       'https://us-central1-empowered-hoops-term-tra-341d5.cloudfunctions.net/updateAttendance',
@@ -115,7 +122,7 @@ const handleSave = async () => {
               sessions[selectedSession] || false
             ])
           ),
-          termConfig: termConfig, // ← ADD THIS
+          termConfig: termConfig,
         }),
       }
     );
@@ -126,9 +133,11 @@ const handleSave = async () => {
     }
 
     const data = await response.json();
-    
+
     if (data.success) {
       setSaveSuccess(true);
+      // Show notes section after successful save
+      setShowNotesSection(true);
       // Hide success message after 3 seconds
       setTimeout(() => setSaveSuccess(false), 3000);
     } else {
@@ -140,6 +149,72 @@ const handleSave = async () => {
   } finally {
     setSaving(false);
   }
+};
+
+const handleNoteSave = (athleteId, noteObject) => {
+  setAthleteNotes(prev => ({
+    ...prev,
+    [athleteId]: noteObject
+  }));
+  setCurrentNoteAthlete(null);
+};
+
+const handleSkipNote = () => {
+  setCurrentNoteAthlete(null);
+};
+
+const handleSaveAllNotes = async () => {
+  console.log('Saving all notes for session:', selectedSession);
+  setSaving(true);
+
+  try {
+    const response = await fetch(
+      'https://us-central1-empowered-hoops-term-tra-341d5.cloudfunctions.net/updateSessionNotes',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          spreadsheetId: spreadsheetId,
+          sheetName: programType,
+          sessionNumber: selectedSession,
+          notes: athleteNotes,
+          termConfig: termConfig,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to save notes');
+    }
+
+    const data = await response.json();
+
+    if (data.success) {
+      setSaveSuccess(true);
+      setShowNotesSection(false);
+      setAthleteNotes({});
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } else {
+      throw new Error(data.message || 'Failed to save notes');
+    }
+  } catch (err) {
+    console.error('Save notes error:', err);
+    setError('Failed to save notes: ' + err.message);
+  } finally {
+    setSaving(false);
+  }
+};
+
+const handleFinishWithoutNotes = () => {
+  setShowNotesSection(false);
+  setAthleteNotes({});
+};
+
+const getAttendedAthletes = () => {
+  return athletes.filter(athlete => attendance[athlete.id]?.[selectedSession]);
 };
 
   return (
@@ -253,6 +328,73 @@ const handleSave = async () => {
   </div>
 )}
         </>
+      )}
+
+      {/* Coach Notes Section */}
+      {showNotesSection && !currentNoteAthlete && (
+        <div className="notes-section">
+          <div className="notes-header">
+            <h2>📝 Session Notes</h2>
+            <p>Add notes for athletes who attended Session {selectedSession}</p>
+          </div>
+
+          <div className="notes-athlete-list">
+            {getAttendedAthletes().map(athlete => (
+              <div key={athlete.id} className="note-athlete-item">
+                <div className="note-athlete-info">
+                  <span className="note-athlete-name">{athlete.name}</span>
+                  {athleteNotes[athlete.id] && (
+                    <span className="note-preview">
+                      {noteToDisplayText(athleteNotes[athlete.id])}
+                    </span>
+                  )}
+                </div>
+                <button
+                  className="btn-add-note"
+                  onClick={() => setCurrentNoteAthlete(athlete)}
+                >
+                  {athleteNotes[athlete.id] ? '✏️ Edit Note' : '➕ Add Note'}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="notes-actions">
+            <button
+              className="btn-finish-without-notes"
+              onClick={handleFinishWithoutNotes}
+            >
+              Finish Without Notes
+            </button>
+            <button
+              className="btn-save-all-notes"
+              onClick={handleSaveAllNotes}
+              disabled={Object.keys(athleteNotes).length === 0 || saving}
+            >
+              {saving ? (
+                <>
+                  <span className="spinner-small"></span> Saving Notes...
+                </>
+              ) : (
+                `💾 Save ${Object.keys(athleteNotes).length} Note${Object.keys(athleteNotes).length !== 1 ? 's' : ''}`
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Coach Notes Modal */}
+      {currentNoteAthlete && (
+        <div className="modal-overlay" onClick={handleSkipNote}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <CoachNotes
+              athleteName={currentNoteAthlete.name}
+              onNoteSave={(noteObj) => handleNoteSave(currentNoteAthlete.id, noteObj)}
+              onCancel={handleSkipNote}
+              initialNote={athleteNotes[currentNoteAthlete.id]}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

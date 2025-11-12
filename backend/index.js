@@ -546,11 +546,49 @@ const { spreadsheetId, sheetName } = req.query;
   });
 }
 
-  console.log('Getting attendance data for:', spreadsheetId);
+  console.log('Getting attendance data for:', spreadsheetId, 'sheetName:', sheetName);
 
   try {
     const auth = await getGoogleAuth();
     const sheets = google.sheets({ version: 'v4', auth });
+
+    // Get the actual sheet names from the spreadsheet
+    let actualSheetName = sheetName;
+
+    try {
+      const spreadsheetMetadata = await sheets.spreadsheets.get({
+        spreadsheetId: spreadsheetId,
+      });
+
+      const sheetTabs = spreadsheetMetadata.data.sheets;
+      console.log('Available sheets:', sheetTabs.map(s => s.properties.title));
+
+      // Try to find a matching sheet by name (case-insensitive)
+      let matchedSheet = sheetTabs.find(s =>
+        s.properties.title.toLowerCase() === sheetName.toLowerCase()
+      );
+
+      // If no exact match, try common patterns
+      if (!matchedSheet) {
+        matchedSheet = sheetTabs.find(s =>
+          s.properties.title.toLowerCase().includes('attendance') ||
+          s.properties.title.toLowerCase().includes('term')
+        );
+      }
+
+      // If still no match, use the first sheet
+      if (!matchedSheet && sheetTabs.length > 0) {
+        matchedSheet = sheetTabs[0];
+        console.log('No matching sheet found, using first sheet:', matchedSheet.properties.title);
+      }
+
+      if (matchedSheet) {
+        actualSheetName = matchedSheet.properties.title;
+        console.log('Using sheet:', actualSheetName);
+      }
+    } catch (metadataError) {
+      console.warn('Could not fetch sheet metadata, using provided sheetName:', sheetName);
+    }
 
     // Read the attendance sheet
     // Structure:
@@ -561,7 +599,7 @@ const { spreadsheetId, sheetName } = req.query;
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
-      range: `'${sheetName}'!A1:M50`, // Read enough rows to cover all athletes
+      range: `${actualSheetName}!A1:M50`, // Read enough rows to cover all athletes
     });
 
     const rows = response.data.values || [];
@@ -723,7 +761,7 @@ exports.updateAttendance = onRequest(async (req, res) => {
     return;
   }
 
-  const { spreadsheetId, sessionNumber, attendance, sheetName, termConfig } = req.body;
+  const { spreadsheetId, sessionNumber, attendance, sheetName, termConfig, notes } = req.body;
 
   if (!spreadsheetId || !sessionNumber || !attendance) {
     return res.status(400).json({
@@ -745,17 +783,54 @@ exports.updateAttendance = onRequest(async (req, res) => {
     const auth = await getGoogleAuth();
     const sheets = google.sheets({ version: 'v4', auth });
 
+    // Get the actual sheet name
+    let actualSheetName = sheetName;
+
+    try {
+      const spreadsheetMetadata = await sheets.spreadsheets.get({
+        spreadsheetId: spreadsheetId,
+      });
+
+      const sheetTabs = spreadsheetMetadata.data.sheets;
+      console.log('Available sheets:', sheetTabs.map(s => s.properties.title));
+
+      // Try to find a matching sheet by name (case-insensitive)
+      let matchedSheet = sheetTabs.find(s =>
+        s.properties.title.toLowerCase() === sheetName.toLowerCase()
+      );
+
+      // If no exact match, try common patterns
+      if (!matchedSheet) {
+        matchedSheet = sheetTabs.find(s =>
+          s.properties.title.toLowerCase().includes('attendance') ||
+          s.properties.title.toLowerCase().includes('term')
+        );
+      }
+
+      // If still no match, use the first sheet
+      if (!matchedSheet && sheetTabs.length > 0) {
+        matchedSheet = sheetTabs[0];
+      }
+
+      if (matchedSheet) {
+        actualSheetName = matchedSheet.properties.title;
+        console.log('Using sheet:', actualSheetName);
+      }
+    } catch (metadataError) {
+      console.warn('Could not fetch sheet metadata, using provided sheetName:', sheetName);
+    }
+
     // Calculate column for this session
     const sessionColIndex = parseInt(sessionNumber) + 2;
     const sessionColLetter = String.fromCharCode(65 + sessionColIndex);
 
     // Build update data for the sheet
     const updates = [];
-    
+
     // Get athlete data for Firestore
     const athleteData = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
-      range: `'${sheetName}'!A5:C50`,
+      range: `${actualSheetName}!A5:C50`,
     });
     
     const athleteRows = athleteData.data.values || [];
@@ -763,7 +838,7 @@ exports.updateAttendance = onRequest(async (req, res) => {
     // Get session date from row 3
     const sessionDateData = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
-      range: `'${sheetName}'!${sessionColLetter}3`,
+      range: `${actualSheetName}!${sessionColLetter}3`,
     });
     
     const sessionDate = sessionDateData.data.values?.[0]?.[0] || new Date().toLocaleDateString();
@@ -786,7 +861,7 @@ exports.updateAttendance = onRequest(async (req, res) => {
 
       // Update sheet
       updates.push({
-        range: `'${sheetName}'!${sessionColLetter}${rowNumber}`,
+        range: `${actualSheetName}!${sessionColLetter}${rowNumber}`,
         values: [[mark]]
       });
 
@@ -807,7 +882,7 @@ exports.updateAttendance = onRequest(async (req, res) => {
           duration: termConfig?.duration || 1.5,
           ratio: ratio,
           paymentType: paymentType,
-          notes: '',
+          notes: notes || '',
           spreadsheetId: spreadsheetId,
           sessionNumber: parseInt(sessionNumber),
           timestamp: admin.firestore.FieldValue.serverTimestamp()
@@ -854,9 +929,231 @@ exports.updateAttendance = onRequest(async (req, res) => {
 });
 
 // ============================================
+// UPDATE SESSION NOTES ENDPOINT
+// ============================================
+exports.updateSessionNotes = onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  const { spreadsheetId, sessionNumber, notes, sheetName, termConfig } = req.body;
+
+  if (!spreadsheetId || !sessionNumber || !notes) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required fields: spreadsheetId, sessionNumber, notes'
+    });
+  }
+
+  console.log(`Updating session notes for session ${sessionNumber} in ${spreadsheetId}`);
+  console.log('Notes data:', notes);
+
+  try {
+    const auth = await getGoogleAuth();
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    // Get the actual sheet name
+    let actualSheetName = sheetName;
+
+    try {
+      const spreadsheetMetadata = await sheets.spreadsheets.get({
+        spreadsheetId: spreadsheetId,
+      });
+
+      const sheetTabs = spreadsheetMetadata.data.sheets;
+      let matchedSheet = sheetTabs.find(s =>
+        s.properties.title.toLowerCase() === sheetName.toLowerCase()
+      );
+
+      if (!matchedSheet) {
+        matchedSheet = sheetTabs.find(s =>
+          s.properties.title.toLowerCase().includes('attendance') ||
+          s.properties.title.toLowerCase().includes('term')
+        );
+      }
+
+      if (!matchedSheet && sheetTabs.length > 0) {
+        matchedSheet = sheetTabs[0];
+      }
+
+      if (matchedSheet) {
+        actualSheetName = matchedSheet.properties.title;
+        console.log('Using sheet:', actualSheetName);
+      }
+    } catch (metadataError) {
+      console.warn('Could not fetch sheet metadata, using provided sheetName:', sheetName);
+    }
+
+    // Get athlete data and session date from the sheet
+    const sessionColIndex = parseInt(sessionNumber) + 2;
+    const sessionColLetter = String.fromCharCode(65 + sessionColIndex);
+
+    const athleteData = await sheets.spreadsheets.values.get({
+      spreadsheetId: spreadsheetId,
+      range: `${actualSheetName}!A5:C50`,
+    });
+
+    const athleteRows = athleteData.data.values || [];
+
+    const sessionDateData = await sheets.spreadsheets.values.get({
+      spreadsheetId: spreadsheetId,
+      range: `${actualSheetName}!${sessionColLetter}3`,
+    });
+
+    const sessionDate = sessionDateData.data.values?.[0]?.[0] || new Date().toLocaleDateString();
+
+    // Update Firestore records for each athlete with notes
+    let updatedCount = 0;
+
+    for (const [athleteId, noteObject] of Object.entries(notes)) {
+      const athleteRow = athleteRows[parseInt(athleteId) - 1];
+      if (!athleteRow) {
+        console.log(`Skipping athlete ${athleteId} - no data found`);
+        continue;
+      }
+
+      const athleteName = athleteRow[0];
+
+      // Convert note object to display text for Google Sheets
+      const noteDisplayText = noteToDisplayText(noteObject);
+
+      // Store full note object as JSON string for Firestore
+      const noteJsonString = JSON.stringify(noteObject);
+
+      console.log(`Updating note for athlete: ${athleteName}`);
+      console.log(`Note display: ${noteDisplayText}`);
+
+      // Query Firestore for this athlete's attendance record for this session
+      const querySnapshot = await db.collection('attendance')
+        .where('spreadsheetId', '==', spreadsheetId)
+        .where('sessionNumber', '==', parseInt(sessionNumber))
+        .where('athlete', '==', athleteName)
+        .where('date', '==', sessionDate)
+        .get();
+
+      if (!querySnapshot.empty) {
+        // Update the first matching record
+        const docRef = querySnapshot.docs[0].ref;
+        await docRef.update({
+          notes: noteJsonString,
+          noteDisplay: noteDisplayText,
+          noteMetadata: {
+            category: noteObject.category,
+            tags: noteObject.tags || [],
+            regulationTool: noteObject.regulationTool || null,
+            reEntryPhrase: noteObject.reEntryPhrase || null,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          }
+        });
+
+        console.log(`✅ Updated Firestore record for ${athleteName}`);
+        updatedCount++;
+      } else {
+        console.log(`⚠️ No attendance record found for ${athleteName} on ${sessionDate}`);
+      }
+    }
+
+console.log(`Updated ${updatedCount} notes in Firestore`);
+
+    // Also write notes to the "Term Notes" sheet in the term tracker
+    console.log('Writing notes to Term Notes sheet...');
+    
+    const notesSheetName = 'Term Notes';
+    const rowsToAppend = [];
+    
+    for (const [athleteId, noteObject] of Object.entries(notes)) {
+      const athleteRow = athleteRows[parseInt(athleteId) - 1];
+      if (!athleteRow) continue;
+      
+      const athleteName = athleteRow[0];
+      
+      const row = [
+        new Date().toISOString(),
+        sessionDate,
+        parseInt(sessionNumber),
+        athleteName,
+        noteObject.customText || noteObject.text || '',
+        noteObject.category || '',
+        (noteObject.tags || []).join(', '),
+        noteObject.regulationTool || '',
+        noteObject.reEntryPhrase ? 'Yes' : 'No'
+      ];
+      
+      rowsToAppend.push(row);
+    }
+    
+    if (rowsToAppend.length > 0) {
+      try {
+        await sheets.spreadsheets.values.append({
+          spreadsheetId: spreadsheetId,
+          range: `${notesSheetName}!A:I`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: rowsToAppend
+          }
+        });
+        
+        console.log(`✅ Wrote ${rowsToAppend.length} notes to Term Notes sheet`);
+      } catch (sheetError) {
+        console.error('Error writing to Term Notes sheet:', sheetError);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Session notes updated successfully',
+      updated: updatedCount
+    });
+
+  } catch (error) {
+    console.error('Error updating session notes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update session notes',
+      error: error.message
+    });
+  }
+});
+
+// Helper function to convert note object to display text
+function noteToDisplayText(noteObj) {
+  if (!noteObj || typeof noteObj === 'string') {
+    return noteObj || '';
+  }
+
+  const CATEGORY_EMOJIS = {
+    'positive': '🟢',
+    'co-regulation': '🟠',
+    'standard': '⚪',
+    'regulation-support': '🔵',
+    'skill-development': '🧠'
+  };
+
+  const { category, text, customText, regulationTool, reEntryPhrase } = noteObj;
+  const categoryEmoji = CATEGORY_EMOJIS[category] || '';
+  const finalText = customText || text;
+
+  let display = `${categoryEmoji} ${finalText}`;
+
+  if (regulationTool) {
+    display += ` | Tool: ${regulationTool}`;
+    if (reEntryPhrase !== null) {
+      display += ` | Re-entry: ${reEntryPhrase ? 'Yes' : 'No'}`;
+    }
+  }
+
+  return display;
+}
+
+// ============================================
 // SYNC ATTENDANCE TO MASTER SHEET
 // ============================================
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 
 exports.syncAttendanceToMaster = onDocumentCreated('attendance/{docId}', async (event) => {
   const MASTER_SHEET_ID = '1W8vilXx7JcRDTiRJR5qddWzx8NXO7rvO';
@@ -882,7 +1179,7 @@ exports.syncAttendanceToMaster = onDocumentCreated('attendance/{docId}', async (
       attendanceData.duration,
       attendanceData.ratio,
       attendanceData.paymentType,
-      attendanceData.notes || ''
+      attendanceData.noteDisplay || attendanceData.notes || ''
     ];
     
     // Append to master sheet
@@ -896,10 +1193,83 @@ exports.syncAttendanceToMaster = onDocumentCreated('attendance/{docId}', async (
     });
     
     console.log('✅ Successfully synced attendance to master sheet');
-    
+
   } catch (error) {
     console.error('Error syncing to master sheet:', error);
     throw error;
+  }
+});
+
+// ============================================
+// UPDATE MASTER SHEET WHEN NOTES ARE ADDED
+// ============================================
+exports.updateMasterSheetNotes = onDocumentUpdated('attendance/{docId}', async (event) => {
+  const MASTER_SHEET_ID = '1W8vilXx7JcRDTiRJR5qddWzx8NXO7rvO';
+  const MASTER_SHEET_NAME = 'Attendance & Payments';
+
+  console.log('Updating master sheet with new notes...');
+
+  try {
+    const beforeData = event.data.before.data();
+    const afterData = event.data.after.data();
+
+    // Only proceed if notes were updated
+    if (beforeData.notes === afterData.notes && beforeData.noteDisplay === afterData.noteDisplay) {
+      console.log('No note changes detected, skipping update');
+      return;
+    }
+
+    console.log('Note update detected:', {
+      before: beforeData.noteDisplay || beforeData.notes || '',
+      after: afterData.noteDisplay || afterData.notes || ''
+    });
+
+    // Get Google Auth
+    const auth = await getGoogleAuth();
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    // Find the row in the master sheet that matches this attendance record
+    // We'll search by date, program, athlete to find the matching row
+    const searchResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: MASTER_SHEET_ID,
+      range: `'${MASTER_SHEET_NAME}'!A:J`,
+    });
+
+    const rows = searchResponse.data.values || [];
+    let rowIndex = -1;
+
+    // Find the matching row (skip header row)
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (
+        row[0] === afterData.date &&
+        row[1] === afterData.program &&
+        row[2] === afterData.athlete
+      ) {
+        rowIndex = i + 1; // +1 because sheets are 1-indexed
+        break;
+      }
+    }
+
+    if (rowIndex > 0) {
+      // Update the notes column (column J)
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: MASTER_SHEET_ID,
+        range: `'${MASTER_SHEET_NAME}'!J${rowIndex}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[afterData.noteDisplay || afterData.notes || '']]
+        }
+      });
+
+      console.log(`✅ Successfully updated notes in master sheet at row ${rowIndex}`);
+    } else {
+      console.log('⚠️ Could not find matching row in master sheet');
+    }
+
+  } catch (error) {
+    console.error('Error updating master sheet notes:', error);
+    // Don't throw - we don't want to fail the update if master sheet sync fails
   }
 });
 
