@@ -36,7 +36,7 @@ async function getGoogleAuth() {
 // ============================================
 // MAIN CLOUD FUNCTION
 // ============================================
-exports.createTermTracker = async (req, res) => {
+exports.createTermTracker = onRequest(async (req, res) => {
   // Set CORS headers
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -117,7 +117,7 @@ exports.createTermTracker = async (req, res) => {
       errors: [error.message]
     });
   }
-};
+});
 
 // ============================================
 // VALIDATION
@@ -434,7 +434,7 @@ async function sendConfirmationEmail(data, spreadsheetId) {
 // ============================================
 // LIST TERM TRACKERS ENDPOINT
 // ============================================
-exports.listTermTrackers = async (req, res) => {
+exports.listTermTrackers = onRequest(async (req, res) => {
   // Set CORS headers
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -516,7 +516,7 @@ exports.listTermTrackers = async (req, res) => {
       error: error.message,
     });
   }
-};
+});
 
 // ============================================
 // GET ATTENDANCE DATA ENDPOINT
