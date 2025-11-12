@@ -941,7 +941,7 @@ function formatSessionDate(dateString) {
 }
 
 function calculateDuration(sessionTimeString) {
-  // Input format: "1:00pm - 3:00pm" or "4:00 PM - 5:30 PM"
+  // Input format: "1:00pm - 3:00pm", "4:00 PM - 5:30 PM", "1-3pm", "1pm-3pm"
   // Output: duration in hours (e.g., 2 or 1.5)
 
   if (!sessionTimeString) return 1.5; // Default fallback
@@ -951,8 +951,19 @@ function calculateDuration(sessionTimeString) {
     const parts = sessionTimeString.split('-');
     if (parts.length !== 2) return 1.5;
 
-    const startStr = parts[0].trim();
-    const endStr = parts[1].trim();
+    let startStr = parts[0].trim();
+    let endStr = parts[1].trim();
+
+    // Handle case like "1-3pm" where only end has am/pm
+    // If start time has no am/pm but end does, assume same period
+    const startHasAmPm = startStr.toLowerCase().includes('am') || startStr.toLowerCase().includes('pm');
+    const endHasAmPm = endStr.toLowerCase().includes('am') || endStr.toLowerCase().includes('pm');
+
+    if (!startHasAmPm && endHasAmPm) {
+      // Copy am/pm from end to start
+      const amPm = endStr.toLowerCase().includes('pm') ? 'pm' : 'am';
+      startStr = startStr + amPm;
+    }
 
     // Parse time strings to hours
     const startHour = parseTimeToHours(startStr);
@@ -975,7 +986,7 @@ function calculateDuration(sessionTimeString) {
 }
 
 function parseTimeToHours(timeString) {
-  // Parse "1:00pm", "3:30 PM", "12:00am" etc. to decimal hours
+  // Parse "1:00pm", "3:30 PM", "12:00am", "1pm", "3pm" etc. to decimal hours
 
   try {
     // Remove spaces and convert to lowercase
@@ -988,12 +999,20 @@ function parseTimeToHours(timeString) {
     // Remove am/pm
     time = time.replace(/am|pm/g, '');
 
-    // Split hours and minutes
-    const timeParts = time.split(':');
-    if (timeParts.length !== 2) return null;
+    let hours, minutes;
 
-    let hours = parseInt(timeParts[0]);
-    const minutes = parseInt(timeParts[1]);
+    // Check if time has colon (e.g., "1:30" or "13:30")
+    if (time.includes(':')) {
+      const timeParts = time.split(':');
+      if (timeParts.length !== 2) return null;
+
+      hours = parseInt(timeParts[0]);
+      minutes = parseInt(timeParts[1]);
+    } else {
+      // No colon - just hours (e.g., "1" or "13")
+      hours = parseInt(time);
+      minutes = 0;
+    }
 
     if (isNaN(hours) || isNaN(minutes)) return null;
 
