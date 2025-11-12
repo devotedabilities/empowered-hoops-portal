@@ -599,7 +599,7 @@ const { spreadsheetId, sheetName } = req.query;
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
-      range: `'${actualSheetName}'!A1:M50`, // Read enough rows to cover all athletes
+      range: `${actualSheetName}!A1:M50`, // Read enough rows to cover all athletes
     });
 
     const rows = response.data.values || [];
@@ -830,7 +830,7 @@ exports.updateAttendance = onRequest(async (req, res) => {
     // Get athlete data for Firestore
     const athleteData = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
-      range: `'${actualSheetName}'!A5:C50`,
+      range: `${actualSheetName}!A5:C50`,
     });
     
     const athleteRows = athleteData.data.values || [];
@@ -838,7 +838,7 @@ exports.updateAttendance = onRequest(async (req, res) => {
     // Get session date from row 3
     const sessionDateData = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
-      range: `'${actualSheetName}'!${sessionColLetter}3`,
+      range: `${actualSheetName}!${sessionColLetter}3`,
     });
     
     const sessionDate = sessionDateData.data.values?.[0]?.[0] || new Date().toLocaleDateString();
@@ -861,7 +861,7 @@ exports.updateAttendance = onRequest(async (req, res) => {
 
       // Update sheet
       updates.push({
-        range: `'${actualSheetName}'!${sessionColLetter}${rowNumber}`,
+        range: `${actualSheetName}!${sessionColLetter}${rowNumber}`,
         values: [[mark]]
       });
 
@@ -995,14 +995,14 @@ exports.updateSessionNotes = onRequest(async (req, res) => {
 
     const athleteData = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
-      range: `'${actualSheetName}'!A5:C50`,
+      range: `${actualSheetName}!A5:C50`,
     });
 
     const athleteRows = athleteData.data.values || [];
 
     const sessionDateData = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
-      range: `'${actualSheetName}'!${sessionColLetter}3`,
+      range: `${actualSheetName}!${sessionColLetter}3`,
     });
 
     const sessionDate = sessionDateData.data.values?.[0]?.[0] || new Date().toLocaleDateString();
