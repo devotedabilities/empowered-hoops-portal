@@ -1058,7 +1058,51 @@ exports.updateSessionNotes = onRequest(async (req, res) => {
       }
     }
 
-    console.log(`Updated ${updatedCount} notes in Firestore`);
+console.log(`Updated ${updatedCount} notes in Firestore`);
+
+    // Also write notes to the "Term Notes" sheet in the term tracker
+    console.log('Writing notes to Term Notes sheet...');
+    
+    const notesSheetName = 'Term Notes';
+    const rowsToAppend = [];
+    
+    for (const [athleteId, noteObject] of Object.entries(notes)) {
+      const athleteRow = athleteRows[parseInt(athleteId) - 1];
+      if (!athleteRow) continue;
+      
+      const athleteName = athleteRow[0];
+      
+      const row = [
+        new Date().toISOString(),
+        sessionDate,
+        parseInt(sessionNumber),
+        athleteName,
+        noteObject.customText || noteObject.text || '',
+        noteObject.category || '',
+        (noteObject.tags || []).join(', '),
+        noteObject.regulationTool || '',
+        noteObject.reEntryPhrase ? 'Yes' : 'No'
+      ];
+      
+      rowsToAppend.push(row);
+    }
+    
+    if (rowsToAppend.length > 0) {
+      try {
+        await sheets.spreadsheets.values.append({
+          spreadsheetId: spreadsheetId,
+          range: `${notesSheetName}!A:I`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: rowsToAppend
+          }
+        });
+        
+        console.log(`✅ Wrote ${rowsToAppend.length} notes to Term Notes sheet`);
+      } catch (sheetError) {
+        console.error('Error writing to Term Notes sheet:', sheetError);
+      }
+    }
 
     res.status(200).json({
       success: true,
