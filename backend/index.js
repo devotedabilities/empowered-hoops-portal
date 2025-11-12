@@ -860,7 +860,7 @@ exports.updateAttendance = onRequest(async (req, res) => {
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 
 exports.syncAttendanceToMaster = onDocumentCreated('attendance/{docId}', async (event) => {
-  const MASTER_SHEET_ID = '1W8vilXx7JcRDTiRJR5qddWzx8NXO7rvO';
+  const MASTER_SHEET_ID = '1LQXnQS_KRfwFtNxH6qeKM7nObJgnM6REtT_9YA9f7Tg';
   const MASTER_SHEET_NAME = 'Attendance & Payments';
   
   console.log('Syncing attendance to master sheet...');
