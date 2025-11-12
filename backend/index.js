@@ -761,7 +761,7 @@ exports.updateAttendance = onRequest(async (req, res) => {
     return;
   }
 
-  const { spreadsheetId, sessionNumber, attendance, sheetName, termConfig } = req.body;
+  const { spreadsheetId, sessionNumber, attendance, sheetName, termConfig, notes } = req.body;
 
   if (!spreadsheetId || !sessionNumber || !attendance) {
     return res.status(400).json({
@@ -882,7 +882,7 @@ exports.updateAttendance = onRequest(async (req, res) => {
           duration: termConfig?.duration || 1.5,
           ratio: ratio,
           paymentType: paymentType,
-          notes: '',
+          notes: notes || '',
           spreadsheetId: spreadsheetId,
           sessionNumber: parseInt(sessionNumber),
           timestamp: admin.firestore.FieldValue.serverTimestamp()
