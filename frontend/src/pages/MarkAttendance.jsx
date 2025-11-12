@@ -37,7 +37,7 @@ const fetchAttendanceData = async () => {
 
   try {
     const response = await fetch(
-      `https://us-central1-empowered-hoops-term-tra-341d5.cloudfunctions.net/getAttendanceData?spreadsheetId=${spreadsheetId}&sheetName=${encodeURIComponent(programType)}`
+      `https://us-central1-empowered-hoops-term-tra-341d5.cloudfunctions.net/getAttendanceData?spreadsheetId=${spreadsheetId}&sheetName=Term%20Attendance`
     );
     
     if (!response.ok) {
@@ -107,7 +107,7 @@ const handleSave = async () => {
         },
         body: JSON.stringify({
           spreadsheetId: spreadsheetId,
-          sheetName: programType,
+          sheetName: 'Term Attendance',
           sessionNumber: selectedSession,
           attendance: Object.fromEntries(
             Object.entries(attendance).map(([athleteId, sessions]) => [
@@ -115,7 +115,7 @@ const handleSave = async () => {
               sessions[selectedSession] || false
             ])
           ),
-          termConfig: termConfig, // ← ADD THIS
+          termConfig: termConfig,
         }),
       }
     );

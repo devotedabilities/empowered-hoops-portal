@@ -192,14 +192,15 @@ async function createSpreadsheetFromTemplate(drive, data) {
 // ============================================
 async function configureSpreadsheet(sheets, spreadsheetId, data) {
   const { termConfig, athletes } = data;
-  
-  // 1. Rename the main sheet
-  await renameSheet(sheets, spreadsheetId, termConfig.programType);
-  
-  // 2. Update header information (rows 1-3)
+
+  // Sheet stays as "Term Attendance" - don't rename it
+  // This keeps Apps Script and data validation formulas working
+  // Program type is visible in cell A1 anyway
+
+  // 1. Update header information (rows 1-3)
   await updateHeaders(sheets, spreadsheetId, termConfig);
-  
-  // 3. Add athlete data (starting from row 5)
+
+  // 2. Add athlete data (starting from row 5)
   await addAthletes(sheets, spreadsheetId, athletes);
 }
 
