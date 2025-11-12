@@ -26,6 +26,7 @@ async function getGoogleAuth() {
   const auth = new google.auth.GoogleAuth({
     scopes: [
       'https://www.googleapis.com/auth/drive',
+      'https://www.googleapis.com/auth/spreadsheets',
       'https://www.googleapis.com/auth/script.projects'
     ],
   });
