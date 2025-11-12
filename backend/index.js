@@ -546,11 +546,49 @@ const { spreadsheetId, sheetName } = req.query;
   });
 }
 
-  console.log('Getting attendance data for:', spreadsheetId);
+  console.log('Getting attendance data for:', spreadsheetId, 'sheetName:', sheetName);
 
   try {
     const auth = await getGoogleAuth();
     const sheets = google.sheets({ version: 'v4', auth });
+
+    // Get the actual sheet names from the spreadsheet
+    let actualSheetName = sheetName;
+
+    try {
+      const spreadsheetMetadata = await sheets.spreadsheets.get({
+        spreadsheetId: spreadsheetId,
+      });
+
+      const sheetTabs = spreadsheetMetadata.data.sheets;
+      console.log('Available sheets:', sheetTabs.map(s => s.properties.title));
+
+      // Try to find a matching sheet by name (case-insensitive)
+      let matchedSheet = sheetTabs.find(s =>
+        s.properties.title.toLowerCase() === sheetName.toLowerCase()
+      );
+
+      // If no exact match, try common patterns
+      if (!matchedSheet) {
+        matchedSheet = sheetTabs.find(s =>
+          s.properties.title.toLowerCase().includes('attendance') ||
+          s.properties.title.toLowerCase().includes('term')
+        );
+      }
+
+      // If still no match, use the first sheet
+      if (!matchedSheet && sheetTabs.length > 0) {
+        matchedSheet = sheetTabs[0];
+        console.log('No matching sheet found, using first sheet:', matchedSheet.properties.title);
+      }
+
+      if (matchedSheet) {
+        actualSheetName = matchedSheet.properties.title;
+        console.log('Using sheet:', actualSheetName);
+      }
+    } catch (metadataError) {
+      console.warn('Could not fetch sheet metadata, using provided sheetName:', sheetName);
+    }
 
     // Read the attendance sheet
     // Structure:
@@ -561,7 +599,7 @@ const { spreadsheetId, sheetName } = req.query;
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
-      range: `'${sheetName}'!A1:M50`, // Read enough rows to cover all athletes
+      range: `'${actualSheetName}'!A1:M50`, // Read enough rows to cover all athletes
     });
 
     const rows = response.data.values || [];
@@ -745,17 +783,54 @@ exports.updateAttendance = onRequest(async (req, res) => {
     const auth = await getGoogleAuth();
     const sheets = google.sheets({ version: 'v4', auth });
 
+    // Get the actual sheet name
+    let actualSheetName = sheetName;
+
+    try {
+      const spreadsheetMetadata = await sheets.spreadsheets.get({
+        spreadsheetId: spreadsheetId,
+      });
+
+      const sheetTabs = spreadsheetMetadata.data.sheets;
+      console.log('Available sheets:', sheetTabs.map(s => s.properties.title));
+
+      // Try to find a matching sheet by name (case-insensitive)
+      let matchedSheet = sheetTabs.find(s =>
+        s.properties.title.toLowerCase() === sheetName.toLowerCase()
+      );
+
+      // If no exact match, try common patterns
+      if (!matchedSheet) {
+        matchedSheet = sheetTabs.find(s =>
+          s.properties.title.toLowerCase().includes('attendance') ||
+          s.properties.title.toLowerCase().includes('term')
+        );
+      }
+
+      // If still no match, use the first sheet
+      if (!matchedSheet && sheetTabs.length > 0) {
+        matchedSheet = sheetTabs[0];
+      }
+
+      if (matchedSheet) {
+        actualSheetName = matchedSheet.properties.title;
+        console.log('Using sheet:', actualSheetName);
+      }
+    } catch (metadataError) {
+      console.warn('Could not fetch sheet metadata, using provided sheetName:', sheetName);
+    }
+
     // Calculate column for this session
     const sessionColIndex = parseInt(sessionNumber) + 2;
     const sessionColLetter = String.fromCharCode(65 + sessionColIndex);
 
     // Build update data for the sheet
     const updates = [];
-    
+
     // Get athlete data for Firestore
     const athleteData = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
-      range: `'${sheetName}'!A5:C50`,
+      range: `'${actualSheetName}'!A5:C50`,
     });
     
     const athleteRows = athleteData.data.values || [];
@@ -763,7 +838,7 @@ exports.updateAttendance = onRequest(async (req, res) => {
     // Get session date from row 3
     const sessionDateData = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
-      range: `'${sheetName}'!${sessionColLetter}3`,
+      range: `'${actualSheetName}'!${sessionColLetter}3`,
     });
     
     const sessionDate = sessionDateData.data.values?.[0]?.[0] || new Date().toLocaleDateString();
@@ -786,7 +861,7 @@ exports.updateAttendance = onRequest(async (req, res) => {
 
       // Update sheet
       updates.push({
-        range: `'${sheetName}'!${sessionColLetter}${rowNumber}`,
+        range: `'${actualSheetName}'!${sessionColLetter}${rowNumber}`,
         values: [[mark]]
       });
 
@@ -882,20 +957,52 @@ exports.updateSessionNotes = onRequest(async (req, res) => {
     const auth = await getGoogleAuth();
     const sheets = google.sheets({ version: 'v4', auth });
 
+    // Get the actual sheet name
+    let actualSheetName = sheetName;
+
+    try {
+      const spreadsheetMetadata = await sheets.spreadsheets.get({
+        spreadsheetId: spreadsheetId,
+      });
+
+      const sheetTabs = spreadsheetMetadata.data.sheets;
+      let matchedSheet = sheetTabs.find(s =>
+        s.properties.title.toLowerCase() === sheetName.toLowerCase()
+      );
+
+      if (!matchedSheet) {
+        matchedSheet = sheetTabs.find(s =>
+          s.properties.title.toLowerCase().includes('attendance') ||
+          s.properties.title.toLowerCase().includes('term')
+        );
+      }
+
+      if (!matchedSheet && sheetTabs.length > 0) {
+        matchedSheet = sheetTabs[0];
+      }
+
+      if (matchedSheet) {
+        actualSheetName = matchedSheet.properties.title;
+        console.log('Using sheet:', actualSheetName);
+      }
+    } catch (metadataError) {
+      console.warn('Could not fetch sheet metadata, using provided sheetName:', sheetName);
+    }
+
     // Get athlete data and session date from the sheet
     const sessionColIndex = parseInt(sessionNumber) + 2;
     const sessionColLetter = String.fromCharCode(65 + sessionColIndex);
 
     const athleteData = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
-      range: `'${sheetName}'!A5:C50`,
+      range: `'${actualSheetName}'!A5:C50`,
     });
 
     const athleteRows = athleteData.data.values || [];
 
     const sessionDateData = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
-      range: `'${sheetName}'!${sessionColLetter}3`,
+      range: `'${actualSheetName}'!${sessionColLetter}3`,
     });
 
     const sessionDate = sessionDateData.data.values?.[0]?.[0] || new Date().toLocaleDateString();
