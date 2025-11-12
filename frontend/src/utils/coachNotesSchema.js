@@ -84,6 +84,32 @@ export const NOTE_TEMPLATES = {
     'Team communication focus',
     'Learning positioning and spacing',
     'Worked on emotional regulation through sport'
+  ],
+  // Combined category templates
+  'positive+co-regulation': [
+    'Great progress with [skill] despite needing co-regulation support',
+    'Used [regulation tool] successfully and still achieved [goal]',
+    'Stayed positive during challenging moments – big win'
+  ],
+  'positive+skill-development': [
+    'Excellent focus on [skill] – really shining today',
+    'Big breakthrough with [skill/technique]',
+    'Leadership during skill work – helping others'
+  ],
+  'co-regulation+skill-development': [
+    'Worked on [skill] while managing dysregulation well',
+    'Used [tool] to stay on task during skill practice',
+    'Required support but persisted with [skill] work'
+  ],
+  'regulation-support+skill-development': [
+    'Self-regulated during challenging [skill] work',
+    'Communicated needs while working on [skill]',
+    'Used breaks effectively to master [skill]'
+  ],
+  'positive+regulation-support': [
+    'Independently used regulation strategies – awesome progress',
+    'Self-advocated for needs and stayed engaged',
+    'Big win with self-regulation today'
   ]
 };
 
@@ -91,7 +117,13 @@ export const REGULATION_TOOLS = [
   'Wall Push',
   'Calm Bounce',
   'Anchor Carry',
-  'Box Stance Walk'
+  'Box Stance Walk',
+  'Movement Break',
+  'Breathing Exercise',
+  'Sensory Break',
+  'Quiet Space',
+  'Visual Schedule',
+  'Social Story'
 ];
 
 /**
@@ -119,17 +151,55 @@ export const CONTEXTUAL_TAGS = {
 };
 
 /**
- * Create a structured note object
+ * Get relevant templates based on selected categories
+ */
+export function getRelevantTemplates(selectedCategories) {
+  if (!selectedCategories || selectedCategories.length === 0) {
+    return [];
+  }
+
+  // Sort categories for consistent key lookup
+  const sortedCategories = [...selectedCategories].sort();
+  const combinedKey = sortedCategories.join('+');
+
+  // Check for exact combined match first
+  if (NOTE_TEMPLATES[combinedKey]) {
+    return NOTE_TEMPLATES[combinedKey];
+  }
+
+  // Otherwise, get templates from each individual category
+  const templates = [];
+  selectedCategories.forEach(cat => {
+    if (NOTE_TEMPLATES[cat]) {
+      templates.push(...NOTE_TEMPLATES[cat]);
+    }
+  });
+
+  return templates;
+}
+
+/**
+ * Create a structured note object (updated for multi-category support)
  */
 export function createNoteObject({
-  category,
+  categories, // Now accepts an array
   text,
   customText = null,
-  regulationTool = null,
+  regulationTools = [], // Now accepts an array
   reEntryPhrase = null,
   athleteName = null
 }) {
-  const tags = [...AUTO_TAGS[category]];
+  // Support both old single category and new multi-category
+  const categoryArray = Array.isArray(categories) ? categories : [categories];
+  const primaryCategory = categoryArray[0]; // Use first category for primary classification
+
+  // Collect tags from all selected categories
+  const tags = [];
+  categoryArray.forEach(cat => {
+    if (AUTO_TAGS[cat]) {
+      tags.push(...AUTO_TAGS[cat]);
+    }
+  });
 
   // Add contextual tags based on text content
   const fullText = customText || text;
@@ -141,11 +211,13 @@ export function createNoteObject({
 
   return {
     version: '1.0',
-    category,
+    categories: categoryArray, // Store all categories
+    category: primaryCategory, // Backward compatibility
     text,
     customText,
     tags: [...new Set(tags)], // Remove duplicates
-    regulationTool,
+    regulationTools, // Array of tools
+    regulationTool: regulationTools[0] || null, // Backward compatibility
     reEntryPhrase,
     athleteName,
     timestamp: new Date().toISOString(),
@@ -164,14 +236,19 @@ export function noteToDisplayText(noteObj) {
     return noteObj || '';
   }
 
-  const { category, text, customText, regulationTool, reEntryPhrase } = noteObj;
-  const categoryEmoji = CATEGORY_CONFIG[category]?.emoji || '';
+  const { category, categories, text, customText, regulationTool, regulationTools, reEntryPhrase } = noteObj;
+  
+  // Handle both old and new format
+  const cats = categories || [category];
+  const tools = regulationTools || (regulationTool ? [regulationTool] : []);
+  
+  const categoryEmojis = cats.map(cat => CATEGORY_CONFIG[cat]?.emoji || '').join('');
   const finalText = customText || text;
 
-  let display = `${categoryEmoji} ${finalText}`;
+  let display = `${categoryEmojis} ${finalText}`;
 
-  if (regulationTool) {
-    display += ` | Tool: ${regulationTool}`;
+  if (tools.length > 0) {
+    display += ` | Tools: ${tools.join(', ')}`;
     if (reEntryPhrase !== null) {
       display += ` | Re-entry: ${reEntryPhrase ? 'Yes' : 'No'}`;
     }
@@ -195,9 +272,11 @@ export function parseNoteFromString(noteString) {
     return {
       version: '1.0',
       category: NOTE_CATEGORIES.STANDARD,
+      categories: [NOTE_CATEGORIES.STANDARD],
       text: noteString,
       customText: null,
       tags: ['#legacy'],
+      regulationTools: [],
       regulationTool: null,
       reEntryPhrase: null,
       timestamp: new Date().toISOString()
