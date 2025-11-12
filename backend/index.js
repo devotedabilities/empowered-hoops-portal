@@ -580,14 +580,19 @@ const { spreadsheetId, sheetName } = req.query;
     const headerRow1 = rows[0] || [];
     const headerRow2 = rows[1] || [];
 
+    const sessionTime = headerRow1[2] || '';
+    const calculatedDuration = calculateDuration(sessionTime);
+
+    console.log(`Session time: "${sessionTime}" → Duration: ${calculatedDuration} hours`);
+
     const termConfig = {
       programType: headerRow1[0] || sheetName,
-      sessionTime: headerRow1[2] || '',
+      sessionTime: sessionTime,
       sessionDay: headerRow1[3] || '',
       termName: headerRow2[0] || '',
       coachName: headerRow2[2] || 'Unknown Coach',
       programLabel: `${headerRow1[0] || sheetName} — ${headerRow2[0] || 'Term'}`,
-      duration: 1.5 // Default duration, can be customized if stored in sheet
+      duration: calculatedDuration
     };
 
     // Parse session dates from row 3 (index 2)
@@ -931,6 +936,79 @@ function formatSessionDate(dateString) {
     return dateString;
   }
 }
+
+function calculateDuration(sessionTimeString) {
+  // Input format: "1:00pm - 3:00pm" or "4:00 PM - 5:30 PM"
+  // Output: duration in hours (e.g., 2 or 1.5)
+
+  if (!sessionTimeString) return 1.5; // Default fallback
+
+  try {
+    // Extract start and end time from string
+    const parts = sessionTimeString.split('-');
+    if (parts.length !== 2) return 1.5;
+
+    const startStr = parts[0].trim();
+    const endStr = parts[1].trim();
+
+    // Parse time strings to hours
+    const startHour = parseTimeToHours(startStr);
+    const endHour = parseTimeToHours(endStr);
+
+    if (startHour === null || endHour === null) return 1.5;
+
+    // Calculate duration
+    let duration = endHour - startHour;
+
+    // Handle case where session crosses midnight (unlikely but possible)
+    if (duration < 0) duration += 24;
+
+    return duration;
+
+  } catch (error) {
+    console.error('Error calculating duration:', error);
+    return 1.5; // Fallback to default
+  }
+}
+
+function parseTimeToHours(timeString) {
+  // Parse "1:00pm", "3:30 PM", "12:00am" etc. to decimal hours
+
+  try {
+    // Remove spaces and convert to lowercase
+    let time = timeString.replace(/\s+/g, '').toLowerCase();
+
+    // Extract AM/PM
+    const isPM = time.includes('pm');
+    const isAM = time.includes('am');
+
+    // Remove am/pm
+    time = time.replace(/am|pm/g, '');
+
+    // Split hours and minutes
+    const timeParts = time.split(':');
+    if (timeParts.length !== 2) return null;
+
+    let hours = parseInt(timeParts[0]);
+    const minutes = parseInt(timeParts[1]);
+
+    if (isNaN(hours) || isNaN(minutes)) return null;
+
+    // Convert to 24-hour format
+    if (isPM && hours !== 12) {
+      hours += 12;
+    } else if (isAM && hours === 12) {
+      hours = 0;
+    }
+
+    // Return as decimal hours
+    return hours + (minutes / 60);
+
+  } catch (error) {
+    return null;
+  }
+}
+
 // ============================================
 // UPDATE HELPER SCRIPTS ENDPOINT
 // ============================================
