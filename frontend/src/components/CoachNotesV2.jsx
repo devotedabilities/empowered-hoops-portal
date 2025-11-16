@@ -269,10 +269,6 @@ const CoachNotesV2 = ({
     }).join(' | ');
 
     const fullNote = `S${sessionNumber}: ${formattedNote}`;
-    if (fullNote.length > 500) {
-      alert(`Note is too long (${fullNote.length} characters). Maximum is 500. Please shorten your summaries.`);
-      return;
-    }
 
     setLoading(true);
     try {
@@ -374,10 +370,6 @@ const CoachNotesV2 = ({
     }).join(' | ');
 
     const fullNote = `S${sessionNumber}: ${formattedNote}`;
-    if (fullNote.length > 500) {
-      alert(`Note is too long (${fullNote.length} characters). Maximum is 500.`);
-      return;
-    }
 
     setLoading(true);
     try {
@@ -760,7 +752,6 @@ const CoachNotesV2 = ({
                       userEdited: true
                     })}
                     rows={4}
-                    maxLength={400}
                     placeholder="Write a short description of what happened. Keep it factual and focused on what you observed."
                     title="Avoid interpreting or guessing reasons. Focus on observable behaviour and any support provided."
                   />
@@ -957,7 +948,6 @@ const CoachNotesV2 = ({
                     })}
                     placeholder='E.g. "Participant kept the ball low and moved steadily through cones."'
                     rows={3}
-                    maxLength={300}
                     title="Describe the skill as observed."
                   />
                   <div className="summary-meta">
