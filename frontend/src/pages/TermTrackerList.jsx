@@ -14,6 +14,7 @@ function TermTrackerList() {
   const [filterTerm, setFilterTerm] = useState('All');
   const [filterYear, setFilterYear] = useState('All'); 
   
+  
   const getProgramColor = (programType) => {
     if (programType.includes('Adults') || programType.includes('ADULTS')) {
       return 'green';
@@ -62,16 +63,20 @@ function TermTrackerList() {
       const data = await response.json();
       
       if (data.success) {
-        // FILTER BY ROLE: Coaches only see their own trackers
+        // FILTER BY ROLE AND ASSIGNMENT
         let filteredByRole = data.trackers;
         
         if (!isAdmin()) {
-          // Coach can only see trackers they created
-          filteredByRole = data.trackers.filter(tracker => 
-            tracker.createdBy === currentUser.email || 
-            tracker.name === currentUser.displayName ||
-            tracker.name === currentUser.email
-          );
+          // Coach can see trackers where:
+          // 1. They created it (createdBy === their email)
+          // 2. They are assigned to it (in assignedCoaches array)
+          filteredByRole = data.trackers.filter(tracker => {
+            const isCreator = tracker.createdBy === currentUser.email;
+            const isAssigned = tracker.assignedCoaches && 
+                              tracker.assignedCoaches.includes(currentUser.email);
+            
+            return isCreator || isAssigned;
+          });
         }
         
         setTrackers(filteredByRole);
@@ -301,13 +306,15 @@ function TermTrackerList() {
                       ✓ Mark Attendance
                     </button>
                     
-                    <a href={tracker.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-open"
-                    >
-                      📊 Open Spreadsheet
-                    </a>
+                   {isAdmin() && (
+  <a href={tracker.url}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="btn-open"
+  >
+    📊 Open Spreadsheet
+  </a>
+)}
                   </div>
                 </div>
               ))}

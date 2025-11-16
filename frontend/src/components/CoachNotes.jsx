@@ -3,13 +3,14 @@ import {
   NOTE_CATEGORIES,
   CATEGORY_CONFIG,
   REGULATION_TOOLS,
+  PLACEHOLDER_OPTIONS,
   createNoteObject,
   getRelevantTemplates,
   COMPLIANCE_FOOTER
 } from '../utils/coachNotesSchema';
 
 /**
- * CoachNotes Component - Multi-Category Version
+ * CoachNotes Component - Multi-Category Version with Template Appending
  * Provides structured note-taking interface for coaches aligned with
  * Empowered Hoops Behaviour Management Manual v1.2
  */
@@ -51,14 +52,18 @@ export default function CoachNotes({ athleteName, onNoteSave, initialNote = null
         return [...prev, category];
       }
     });
-    // Reset template when categories change
-    setSelectedTemplate(null);
-    setCustomText('');
+    // Don't reset template/text when categories change - allow building
   };
 
   const handleTemplateSelect = (template) => {
-    setSelectedTemplate(template);
-    setCustomText(''); // Reset custom text when selecting a template
+    // APPEND template to custom text instead of replacing
+    setCustomText(prev => {
+      if (!prev.trim()) {
+        return template;
+      }
+      return prev + '\n' + template;
+    });
+    setSelectedTemplate(template); // Keep for backward compatibility
   };
 
   const handleRegulationToolToggle = (tool) => {
@@ -71,16 +76,38 @@ export default function CoachNotes({ athleteName, onNoteSave, initialNote = null
     });
   };
 
+  // Detect unfilled placeholders in the text
+  const getUnfilledPlaceholders = (text) => {
+    const placeholders = [];
+    if (/\[skill\]/i.test(text)) placeholders.push('skill');
+    if (/\[behaviour\]/i.test(text)) placeholders.push('behaviour');
+    if (/\[issue\]/i.test(text)) placeholders.push('issue');
+    return placeholders;
+  };
+
+  // Replace placeholder in text
+  const handlePlaceholderFill = (placeholderType, value) => {
+    const regex = new RegExp(`\\[${placeholderType}\\]`, 'i');
+    setCustomText(prev => prev.replace(regex, value));
+  };
+
   const handleSave = () => {
-    if (selectedCategories.length === 0 || !selectedTemplate) {
-      alert('Please select at least one category and a note template');
+    if (selectedCategories.length === 0 || !customText.trim()) {
+      alert('Please select at least one category and add note content');
+      return;
+    }
+
+    // Check for unfilled placeholders
+    const unfilled = getUnfilledPlaceholders(customText);
+    if (unfilled.length > 0) {
+      alert(`Please fill in the following placeholders: ${unfilled.map(p => `[${p}]`).join(', ')}`);
       return;
     }
 
     const noteObject = createNoteObject({
       categories: selectedCategories,
-      text: selectedTemplate,
-      customText: customText.trim() || null,
+      text: selectedTemplate || customText, // Use first template or full custom text
+      customText: customText.trim(),
       regulationTools,
       reEntryPhrase: regulationTools.length > 0 ? reEntryPhrase : null,
       athleteName
@@ -97,13 +124,14 @@ export default function CoachNotes({ athleteName, onNoteSave, initialNote = null
                               selectedCategories.includes(NOTE_CATEGORIES.REGULATION_SUPPORT);
 
   const availableTemplates = getRelevantTemplates(selectedCategories);
+  const unfilledPlaceholders = customText ? getUnfilledPlaceholders(customText) : [];
 
   return (
     <div className="coach-notes-container" style={styles.container}>
       <div style={styles.header}>
         <h3 style={styles.title}>📝 Session Notes: {athleteName}</h3>
         <p style={styles.subtitle}>
-          Select one or more categories, then choose or customize a note template
+          Select categories and click templates to build your note. Fill in any placeholders before saving.
         </p>
       </div>
 
@@ -144,19 +172,16 @@ export default function CoachNotes({ athleteName, onNoteSave, initialNote = null
       {/* Template Selection */}
       {selectedCategories.length > 0 && (
         <div style={styles.templateSection}>
-          <h4 style={styles.templateTitle}>Note Templates</h4>
+          <h4 style={styles.templateTitle}>Note Templates (click to add)</h4>
           {availableTemplates.length > 0 ? (
             <div style={styles.templateGrid}>
               {availableTemplates.map((template, index) => (
                 <button
                   key={index}
                   onClick={() => handleTemplateSelect(template)}
-                  style={{
-                    ...styles.templateButton,
-                    ...(selectedTemplate === template ? styles.templateButtonSelected : {})
-                  }}
+                  style={styles.templateButton}
                 >
-                  {template}
+                  + {template}
                 </button>
               ))}
             </div>
@@ -169,26 +194,50 @@ export default function CoachNotes({ athleteName, onNoteSave, initialNote = null
       )}
 
       {/* Text Editing */}
-      {selectedTemplate && (
+      {selectedCategories.length > 0 && (
         <div style={styles.editSection}>
           <label style={styles.editLabel}>
-            Customize note (optional - leave blank to use template text):
+            Customize note (click templates above to add lines):
           </label>
           <textarea
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
-            placeholder={selectedTemplate}
+            placeholder="Click templates above to build your note, or type freely here..."
             style={styles.textarea}
-            rows={3}
+            rows={5}
           />
           <p style={styles.editHint}>
-            Tip: Use factual, observable language. Replace [skill/behaviour/issue] with specific details.
+            Tip: Use factual, observable language. Fill in [skill], [behaviour], or [issue] placeholders below.
           </p>
         </div>
       )}
 
+      {/* Placeholder Fill Section */}
+      {customText && unfilledPlaceholders.length > 0 && (
+        <div style={styles.placeholderSection}>
+          <h4 style={styles.placeholderTitle}>⚠️ Fill Required Placeholders</h4>
+          {unfilledPlaceholders.map(placeholderType => (
+            <div key={placeholderType} style={styles.placeholderRow}>
+              <label style={styles.placeholderLabel}>
+                Select {placeholderType}:
+              </label>
+              <select
+                onChange={(e) => handlePlaceholderFill(placeholderType, e.target.value)}
+                style={styles.placeholderSelect}
+                defaultValue=""
+              >
+                <option value="">-- Choose {placeholderType} --</option>
+                {PLACEHOLDER_OPTIONS[placeholderType]?.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Regulation Tools - Multi-select */}
-      {showRegulationTools && selectedTemplate && (
+      {showRegulationTools && customText && (
         <div style={styles.regulationSection}>
           <h4 style={styles.regulationTitle}>🔧 Regulation Tool Used</h4>
           <p style={styles.regulationSubtitle}>
@@ -250,10 +299,10 @@ export default function CoachNotes({ athleteName, onNoteSave, initialNote = null
         </button>
         <button
           onClick={handleSave}
-          disabled={selectedCategories.length === 0 || !selectedTemplate}
+          disabled={selectedCategories.length === 0 || !customText.trim() || unfilledPlaceholders.length > 0}
           style={{
             ...styles.saveButton,
-            ...((selectedCategories.length === 0 || !selectedTemplate) ? styles.saveButtonDisabled : {})
+            ...((selectedCategories.length === 0 || !customText.trim() || unfilledPlaceholders.length > 0) ? styles.saveButtonDisabled : {})
           }}
         >
           Save Note
@@ -364,12 +413,6 @@ const styles = {
     transition: 'all 0.15s',
     color: '#1d1d1f'
   },
-  templateButtonSelected: {
-    backgroundColor: '#E6F2FF',
-    borderColor: '#007AFF',
-    fontWeight: '500',
-    transform: 'translateX(4px)'
-  },
   noTemplates: {
     textAlign: 'center',
     padding: '40px',
@@ -400,6 +443,40 @@ const styles = {
     color: '#6b7280',
     marginTop: '6px',
     fontStyle: 'italic'
+  },
+  placeholderSection: {
+    marginTop: '16px',
+    marginBottom: '24px',
+    padding: '16px',
+    backgroundColor: '#fff3cd',
+    border: '2px solid #ffc107',
+    borderRadius: '8px'
+  },
+  placeholderTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#856404',
+    marginBottom: '12px'
+  },
+  placeholderRow: {
+    marginBottom: '12px'
+  },
+  placeholderLabel: {
+    display: 'block',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#856404',
+    marginBottom: '6px',
+    textTransform: 'capitalize'
+  },
+  placeholderSelect: {
+    width: '100%',
+    padding: '10px',
+    border: '2px solid #ffc107',
+    borderRadius: '6px',
+    fontSize: '14px',
+    backgroundColor: '#fff',
+    cursor: 'pointer'
   },
   regulationSection: {
     marginBottom: '24px',

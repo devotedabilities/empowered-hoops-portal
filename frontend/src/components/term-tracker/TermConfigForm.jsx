@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import CoachSelector from './CoachSelector';
 
 // NSW School Term Dates
 const NSW_TERM_DATES = {
@@ -57,6 +59,7 @@ const DAY_MAP = {
 };
 
 function TermConfigForm({ termConfig, setTermConfig, calculateSessionDates, onNext }) {
+  const { isAdmin } = useAuth();
   const [autoCalculated, setAutoCalculated] = useState(false);
   const [wasAutoCalculated, setWasAutoCalculated] = useState(false);
   const [showTermDateInfo, setShowTermDateInfo] = useState(true);
@@ -426,6 +429,16 @@ function TermConfigForm({ termConfig, setTermConfig, calculateSessionDates, onNe
       >
         ⁉️ Use Placeholder Times (5-6pm)
       </button>
+
+      {/* NEW: ADMIN ONLY - Coach Assignment */}
+      {isAdmin() && (
+        <div className="form-group" style={{ marginTop: '20px' }}>
+          <CoachSelector
+            selectedCoaches={termConfig.assignedCoaches || []}
+            onChange={(coaches) => handleChange('assignedCoaches', coaches)}
+          />
+        </div>
+      )}
       
       <div className="form-group">
         <label htmlFor="numberOfSessions">Number of Sessions</label>

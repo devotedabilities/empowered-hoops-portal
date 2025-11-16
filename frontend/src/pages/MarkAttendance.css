@@ -592,3 +592,27 @@
     width: 100%;
   }
 }
+
+.btn-refresh-data {
+  padding: 10px 20px;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-refresh-data:hover:not(:disabled) {
+  background: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.btn-refresh-data:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

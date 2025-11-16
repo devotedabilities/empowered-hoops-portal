@@ -60,7 +60,8 @@ export const NOTE_TEMPLATES = {
   ],
   [NOTE_CATEGORIES.CO_REGULATION]: [
     'Needed extra support today',
-    'Working through challenge with [skill/behaviour]',
+    'Working through challenge with [skill]',
+    'Working through challenge with [Behaviour]',
     'Check-in next session about [issue]',
     'Distracted or tired – supported to stay on task',
     'Needed prompts to re-engage'
@@ -125,6 +126,54 @@ export const REGULATION_TOOLS = [
   'Visual Schedule',
   'Social Story'
 ];
+
+/**
+ * Predefined options for placeholders based on Participant Observation Checklist
+ */
+export const PLACEHOLDER_OPTIONS = {
+  skill: [
+    'Dribbling control',
+    'Passing accuracy', 
+    'Shooting technique',
+    'Balance and footwork',
+    'Spatial awareness',
+    'Defensive transitions',
+    'Rebounding positioning',
+    'Catching consistency',
+    'Ball-handling coordination',
+    'Communication with teammates',
+    'Following instructions',
+    'Taking turns',
+    'Emotional regulation'
+  ],
+  behaviour: [
+    'Helped another participant',
+    'Encouraged peers verbally',
+    'Demonstrated safe play',
+    'Accepted feedback calmly',
+    'Walked away from activity',
+    'Interrupted during instruction',
+    'Became verbally distressed',
+    'Threw equipment',
+    'Made unsafe physical contact',
+    'Avoided eye contact and disengaged'
+  ],
+  issue: [
+    'Difficulty following multi-step instructions',
+    'Fatigue affecting participation',
+    'Signs of sensory overload',
+    'Difficulty in group settings',
+    'Required repeated prompts',
+    'Low motivation',
+    'Unsafe contact during play',
+    'Difficulty with personal space',
+    'Frustration after mistakes',
+    'Low tolerance for correction',
+    'Anxiety before joining',
+    'Required 1:1 support',
+    'Needed physical modelling'
+  ]
+};
 
 /**
  * Auto-tagging system for analytics and compliance reporting
