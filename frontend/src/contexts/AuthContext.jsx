@@ -23,6 +23,19 @@ export function AuthProvider({ children }) {
           if (userDoc.exists()) {
             const userData = userDoc.data();
             setUserRole(userData.role);
+            
+            // Format and store coach display name
+            if (userData.name) {
+              const nameParts = userData.name.trim().split(' ');
+              const firstName = nameParts[0];
+              const lastInitial = nameParts.length > 1 ? nameParts[nameParts.length - 1].charAt(0) : '';
+              const displayName = lastInitial ? `${firstName} ${lastInitial}` : firstName;
+              localStorage.setItem('coachDisplayName', displayName);
+            }
+            
+            // Save coach email for backward compatibility
+            localStorage.setItem('coachEmail', user.email);
+            
             // Add role to user object
             setCurrentUser({ ...user, role: userData.role });
           } else {
@@ -37,6 +50,9 @@ export function AuthProvider({ children }) {
       } else {
         setCurrentUser(null);
         setUserRole(null);
+        // Clear localStorage on logout
+        localStorage.removeItem('coachEmail');
+        localStorage.removeItem('coachDisplayName');
       }
       setLoading(false);
     });

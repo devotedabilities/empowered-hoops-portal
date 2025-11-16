@@ -696,9 +696,6 @@ const { spreadsheetId, sheetName } = req.query;
 // ============================================
 // SEND WELCOME EMAIL ENDPOINT
 // ============================================
-// ============================================
-// SEND WELCOME EMAIL ENDPOINT
-// ============================================
 exports.sendWelcomeEmail = onRequest(async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -1300,6 +1297,7 @@ function formatSessionDate(dateString) {
     return dateString;
   }
 }
+
 // ============================================
 // UPDATE HELPER SCRIPTS ENDPOINT
 // ============================================
@@ -1367,7 +1365,7 @@ exports.updateHelperScripts = onRequest(async (req, res) => {
 });
 
 // ============================================
-// FOR LOCAL TESTING - Update this section
+// FOR LOCAL TESTING
 // ============================================
 if (require.main === module) {
   const functions = require('@google-cloud/functions-framework');
@@ -1376,7 +1374,9 @@ if (require.main === module) {
   functions.http('getAttendanceData', exports.getAttendanceData);
   functions.http('updateAttendance', exports.updateAttendance);
   functions.http('sendWelcomeEmail', exports.sendWelcomeEmail);
-  functions.http('updateHelperScripts', exports.updateHelperScripts); // ADD THIS LINE
+  functions.http('updateHelperScripts', exports.updateHelperScripts);
+  functions.http('saveSessionNotes', exports.saveSessionNotes);
+  functions.http('getSessionNotes', exports.getSessionNotes);
   
   console.log('Starting local server on http://localhost:8080');
   console.log('Endpoints:');
@@ -1385,5 +1385,291 @@ if (require.main === module) {
   console.log('  GET  http://localhost:8080/getAttendanceData');
   console.log('  POST http://localhost:8080/updateAttendance');
   console.log('  POST http://localhost:8080/sendWelcomeEmail');
-  console.log('  POST http://localhost:8080/updateHelperScripts'); // ADD THIS LINE
+  console.log('  POST http://localhost:8080/updateHelperScripts');
+  console.log('  POST http://localhost:8080/saveSessionNotes');
+  console.log('  GET  http://localhost:8080/getSessionNotes');
 }
+
+// ============================================================
+// SAVE SESSION NOTES (Basketball & Behaviour) - V2 System
+// ============================================================
+exports.saveSessionNotes = onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const {
+      type,
+      spreadsheetId,
+      sheetName,
+      sessionNumber,
+      athleteId,
+      athleteName,
+      coachId,
+      events,
+      hasChallengeMoment
+    } = req.body;
+
+    // Validation
+    if (!type || !spreadsheetId || !sheetName || !sessionNumber || !athleteId || !events) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['type', 'spreadsheetId', 'sheetName', 'sessionNumber', 'athleteId', 'events']
+      });
+    }
+
+    if (!['basketball', 'behaviour'].includes(type)) {
+      return res.status(400).json({ error: 'Invalid type. Must be "basketball" or "behaviour"' });
+    }
+
+    if (!events || events.length === 0) {
+      return res.status(400).json({
+        error: 'Must add at least one moment before saving'
+      });
+    }
+
+    if (type === 'behaviour' && !hasChallengeMoment) {
+      return res.status(400).json({
+        error: 'Behaviour notes must include at least one Challenge moment'
+      });
+    }
+
+    const columnMap = {
+      'basketball': 'AB',
+      'behaviour': 'AC'
+    };
+
+    const noteColumn = columnMap[type];
+
+    const auth = await getGoogleAuth();
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const sheetData = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `'${sheetName}'!A:A`,
+    });
+
+// athleteId is the row index (1 = first athlete at row 5)
+const athleteRow = parseInt(athleteId) + 4; // athleteId "1" = row 5
+
+    let noteText = '';
+    
+    if (type === 'basketball') {
+      const skillLabels = {
+        'dribbling': 'Dribbling',
+        'shooting': 'Shooting',
+        'passing': 'Passing',
+        'spacing': 'Spacing/Positioning',
+        'defence': 'Defence'
+      };
+
+      const outcomeLabels = {
+        'improved': 'Improved',
+        'struggled': 'Struggled',
+        'stable': 'Same as last',
+        'notTested': 'Not tested'
+      };
+
+      const moments = events.map(event => {
+        const skill = skillLabels[event.skillId] || event.skillId;
+        const outcome = outcomeLabels[event.outcomeId] || event.outcomeId;
+        const comment = event.comment ? ` - ${event.comment}` : '';
+        return `${skill}: ${outcome}${comment}`;
+      });
+
+      noteText = moments.join(' | ');
+
+    } else if (type === 'behaviour') {
+      const momentTypeLabels = {
+        'positive': '🟢',
+        'challenge': '🔴',
+        'standard': '⚪'
+      };
+
+      const moments = events.map(event => {
+        const icon = momentTypeLabels[event.momentTypeId] || '';
+        const summary = event.summary || event.momentOptionId;
+        return `${icon} ${summary}`.trim();
+      });
+
+      noteText = moments.join(' | ');
+    }
+
+    const sessionPrefix = `S${sessionNumber}: `;
+    const fullSessionNote = `${sessionPrefix}${noteText}`;
+    
+
+    const existingNotesRange = `'${sheetName}'!${noteColumn}${athleteRow}`;
+    const existingNotesData = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: existingNotesRange,
+    });
+
+    const existingNotes = existingNotesData.data.values?.[0]?.[0] || '';
+
+    const newNoteEntry = fullSessionNote;
+    
+    const updatedNotes = existingNotes
+      ? `${existingNotes} | ${newNoteEntry}`
+      : newNoteEntry;
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: existingNotesRange,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [[updatedNotes]],
+      },
+    });
+
+    const firestorePath = `sessionNotes/${spreadsheetId}/sessions/${sessionNumber}/${type}/${athleteId}`;
+    await db.doc(firestorePath).set({
+      athleteId,
+      athleteName,
+      sessionNumber: parseInt(sessionNumber),
+      type,
+      events,
+      formattedNote: noteText,
+      coachId,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      sheetName,
+      hasChallengeMoment: type === 'behaviour' ? hasChallengeMoment : null
+    });
+
+    console.log(`✅ ${type} notes saved for athlete ${athleteId} in session ${sessionNumber}`);
+
+    return res.status(200).json({
+      success: true,
+      message: `${type} notes saved successfully`,
+      athleteRow,
+      noteColumn,
+      formattedNote: noteText,
+      updatedNotes
+    });
+
+  } catch (error) {
+    console.error('Error saving session notes:', error);
+    return res.status(500).json({
+      error: 'Failed to save session notes',
+      details: error.message
+    });
+  }
+});
+
+// ============================================================
+// GET SESSION NOTES (Basketball & Behaviour) - V2 System
+// ============================================================
+exports.getSessionNotes = onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const { spreadsheetId, sheetName, athleteId, sessionNumber } = req.query;
+
+    if (!spreadsheetId || !sheetName || !athleteId) {
+      return res.status(400).json({
+        error: 'Missing required parameters',
+        required: ['spreadsheetId', 'sheetName', 'athleteId']
+      });
+    }
+
+ const auth = await getGoogleAuth();
+const sheets = google.sheets({ version: 'v4', auth });
+
+const sheetData = await sheets.spreadsheets.values.get({
+  spreadsheetId,
+  range: `'${sheetName}'!A:AC`,
+});
+
+const rows = sheetData.data.values || [];
+
+// athleteId is the row index (1 = first athlete at row 5)
+const athleteRow = parseInt(athleteId) + 3; // 0-based: athleteId 1 = index 4
+
+if (athleteRow >= rows.length || !rows[athleteRow] || !rows[athleteRow][0]) {
+  return res.status(404).json({ 
+    error: `Athlete ${athleteId} not found in sheet ${sheetName}`,
+    basketballNotes: '',
+    behaviourNotes: ''
+  });
+}
+
+    const athleteData = rows[athleteRow];
+    const basketballNotes = athleteData[27] || '';
+    const behaviourNotes = athleteData[28] || '';
+
+    let filteredBasketballNotes = basketballNotes;
+    let filteredBehaviourNotes = behaviourNotes;
+
+    if (sessionNumber) {
+      const sessionPrefix = `S${sessionNumber}:`;
+      
+      if (basketballNotes) {
+        const bbParts = basketballNotes.split(' | ');
+        const bbSessionNotes = bbParts.filter(part => part.startsWith(sessionPrefix));
+        filteredBasketballNotes = bbSessionNotes.join(' | ');
+      }
+
+      if (behaviourNotes) {
+        const behavParts = behaviourNotes.split(' | ');
+        const behavSessionNotes = behavParts.filter(part => part.startsWith(sessionPrefix));
+        filteredBehaviourNotes = behavSessionNotes.join(' | ');
+      }
+    }
+
+    let firestoreData = null;
+    if (sessionNumber) {
+      try {
+        const basketballDoc = await db
+          .doc(`sessionNotes/${spreadsheetId}/sessions/${sessionNumber}/basketball/${athleteId}`)
+          .get();
+        
+        const behaviourDoc = await db
+          .doc(`sessionNotes/${spreadsheetId}/sessions/${sessionNumber}/behaviour/${athleteId}`)
+          .get();
+
+        firestoreData = {
+          basketball: basketballDoc.exists ? basketballDoc.data() : null,
+          behaviour: behaviourDoc.exists ? behaviourDoc.data() : null
+        };
+      } catch (firestoreError) {
+        console.warn('Firestore fetch failed (non-critical):', firestoreError.message);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      athleteId,
+      sheetName,
+      sessionNumber: sessionNumber || 'all',
+      notes: {
+        basketball: filteredBasketballNotes,
+        behaviour: filteredBehaviourNotes
+      },
+      raw: {
+        basketball: basketballNotes,
+        behaviour: behaviourNotes
+      },
+      firestoreData
+    });
+
+  } catch (error) {
+    console.error('Error fetching session notes:', error);
+    return res.status(500).json({
+      error: 'Failed to fetch session notes',
+      details: error.message
+    });
+  }
+});

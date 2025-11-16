@@ -35,6 +35,7 @@ const CoachNotesV2 = ({
   const [behaviourEvents, setBehaviourEvents] = useState([]);
   const [behaviourForm, setBehaviourForm] = useState({
     sliderLevel: 2, // Start at "Some Support Needed" (most common)
+    sliderPosition: 50, // Raw slider position (0-100)
     noteId: null,
     selectedExamples: [],
     addOnIds: [],
@@ -233,6 +234,7 @@ const CoachNotesV2 = ({
     // Reset form
     setBehaviourForm({
       sliderLevel: null,
+      sliderPosition: 50,
       noteId: null,
       selectedExamples: [],
       addOnIds: [],
@@ -262,35 +264,37 @@ const CoachNotesV2 = ({
       return;
     }
 
-    const formattedNote = behaviourEvents.map(event => {
-      const sliderData = SLIDER_LEVELS.find(s => s.value === event.sliderLevel);
-      const emoji = sliderData?.emoji || '';
-      return `${emoji} ${event.summary}`;
-    }).join(' | ');
+const formattedNote = behaviourEvents.map(event => {
+  const sliderData = SLIDER_LEVELS.find(s => s.value === event.sliderLevel);
+  const emoji = sliderData?.emoji || '';
+  return `${emoji} ${event.summary}`;
+}).join(' | ');
 
-    const fullNote = `S${sessionNumber}: ${formattedNote}`;
+const fullNote = `S${sessionNumber}: ${formattedNote}`;
 
-    setLoading(true);
-    try {
-      const coachEmail = localStorage.getItem('coachEmail');
-      const response = await fetch(
-        'https://us-central1-empowered-hoops-term-tra-341d5.cloudfunctions.net/saveSessionNotes',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'behaviour',
-            spreadsheetId,
-            sheetName,
-            sessionNumber: sessionNumber.toString(),
-            athleteId: athlete.id,
-            athleteName: athlete.name,
-            coachId: coachEmail,
-            events: behaviourEvents,
-            hasChallengeMoment: hasChallengeMoment()
-          })
-        }
-      );
+setLoading(true);
+try {
+  const coachEmail = localStorage.getItem('coachEmail');
+  const coachDisplayName = localStorage.getItem('coachDisplayName');
+  const response = await fetch(
+    'https://us-central1-empowered-hoops-term-tra-341d5.cloudfunctions.net/saveSessionNotes',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'behaviour',
+        spreadsheetId,
+        sheetName,
+        sessionNumber: sessionNumber.toString(),
+        athleteId: athlete.id,
+        athleteName: athlete.name,
+        coachId: coachEmail,
+        coachName: coachDisplayName,
+        events: behaviourEvents,
+        hasChallengeMoment: hasChallengeMoment()
+      })
+    }
+  );
 
       const data = await response.json();
       if (data.success) {
@@ -373,24 +377,26 @@ const CoachNotesV2 = ({
 
     setLoading(true);
     try {
-      const coachEmail = localStorage.getItem('coachEmail');
-      const response = await fetch(
-        'https://us-central1-empowered-hoops-term-tra-341d5.cloudfunctions.net/saveSessionNotes',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'basketball',
-            spreadsheetId,
-            sheetName,
-            sessionNumber: sessionNumber.toString(),
-            athleteId: athlete.id,
-            athleteName: athlete.name,
-            coachId: coachEmail,
-            events: basketballEvents
-          })
-        }
-      );
+const coachEmail = localStorage.getItem('coachEmail');
+const coachDisplayName = localStorage.getItem('coachDisplayName');
+const response = await fetch(
+  'https://us-central1-empowered-hoops-term-tra-341d5.cloudfunctions.net/saveSessionNotes',
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: 'basketball',
+      spreadsheetId,
+      sheetName,
+      sessionNumber: sessionNumber.toString(),
+      athleteId: athlete.id,
+      athleteName: athlete.name,
+      coachId: coachEmail,
+      coachName: coachDisplayName,
+      events: basketballEvents
+    })
+  }
+);
 
       const data = await response.json();
       if (data.success) {
@@ -438,10 +444,20 @@ const CoachNotesV2 = ({
         )}
 
         {/* Tab Navigation */}
-        <div className="tabs">
+        <div className="tabs" style={{
+          boxShadow: '0 3px 10px rgba(0, 0, 0, 0.08)',
+          position: 'relative',
+          zIndex: 1
+        }}>
           <button
             className={`tab ${activeTab === 'behaviour' ? 'active' : ''}`}
             onClick={() => setActiveTab('behaviour')}
+            style={{
+              background: activeTab === 'behaviour' ? '#8b5cf6' : undefined,
+              borderColor: activeTab === 'behaviour' ? '#8b5cf6' : undefined,
+              boxShadow: activeTab === 'behaviour' ? 'inset 0 -8px 12px -6px rgba(109, 40, 217, 0.5)' : 'none',
+              color: activeTab === 'behaviour' ? 'white' : undefined
+            }}
           >
             🧠 Social Skills
             {!hasChallengeMoment() && behaviourEvents.length > 0 && (
@@ -451,6 +467,12 @@ const CoachNotesV2 = ({
           <button
             className={`tab ${activeTab === 'basketball' ? 'active' : ''}`}
             onClick={() => setActiveTab('basketball')}
+            style={{
+              background: activeTab === 'basketball' ? '#f97316' : undefined,
+              borderColor: activeTab === 'basketball' ? '#f97316' : undefined,
+              boxShadow: activeTab === 'basketball' ? 'inset 0 -8px 12px -6px rgba(194, 65, 12, 0.5)' : 'none',
+              color: activeTab === 'basketball' ? 'white' : undefined
+            }}
           >
             🏀 Hoop Skills
           </button>
@@ -532,65 +554,71 @@ const CoachNotesV2 = ({
             </p>
             
             {/* Slider Component */}
-            <div className="slider-container" style={{ 
+            <div style={{ 
               padding: '1.5rem', 
               background: '#f9fafb', 
               borderRadius: '12px',
               marginBottom: '1.5rem'
             }}>
-              <input
-                type="range"
-                min="0"
-                max="4"
-                step="1"
-                value={behaviourForm.sliderLevel ?? 2}
-                onChange={(e) => setBehaviourForm({ 
-                  ...behaviourForm, 
-                  sliderLevel: parseInt(e.target.value),
-                  noteId: null,
-                  selectedExamples: [],
-                  addOnIds: [],
-                  summary: '',
-                  userEdited: false
-                })}
-                style={{
-                  width: '100%',
-                  height: '8px',
-                  borderRadius: '4px',
-                  outline: 'none',
-                  background: `linear-gradient(to right, 
-                    #4A148C 0%, 
-                    #5C6BC0 25%, 
-                    #90A4AE 50%, 
-                    #B0BEC5 75%, 
-                    #26A69A 100%)`
-                }}
-              />
-              
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                marginTop: '1rem',
-                fontSize: '0.75rem'
-              }}>
-                {SLIDER_LEVELS.map((level) => (
-                  <div 
-                    key={level.value}
-                    style={{ 
-                      textAlign: 'center',
-                      flex: 1,
-                      fontWeight: behaviourForm.sliderLevel === level.value ? '600' : '400',
-                      color: behaviourForm.sliderLevel === level.value ? level.color : '#9ca3af'
-                    }}
-                  >
-                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                      {level.emoji}
-                    </div>
-                    <div style={{ fontSize: '0.75rem' }}>
-                      {level.shortLabel}
-                    </div>
-                  </div>
-                ))}
+              <div className="slider-container">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={behaviourForm.sliderPosition}
+                  onChange={(e) => {
+                    const rawValue = parseInt(e.target.value);
+                    // Calculate which zone (0-4) based on position
+                    const zone = Math.min(4, Math.floor(rawValue / 20));
+                    
+                    setBehaviourForm({ 
+                      ...behaviourForm, 
+                      sliderPosition: rawValue,
+                      sliderLevel: zone,
+                      noteId: null,
+                      selectedExamples: [],
+                      addOnIds: [],
+                      summary: '',
+                      userEdited: false
+                    });
+                  }}
+                  data-level={behaviourForm.sliderLevel ?? 2}
+                />
+                
+                <div className="slider-labels">
+                  {SLIDER_LEVELS.map((level) => {
+                    const isActive = (behaviourForm.sliderLevel ?? 2) === level.value;
+                    // Calculate center position for this level (each zone is 20% wide)
+                    const centerPosition = (level.value * 20) + 10;
+                    
+                    return (
+                      <div 
+                        key={level.value}
+                        className={isActive ? 'active' : ''}
+                        style={{ 
+                          color: isActive ? level.color : '#9ca3af',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => {
+                          setBehaviourForm({
+                            ...behaviourForm,
+                            sliderPosition: centerPosition,
+                            sliderLevel: level.value,
+                            noteId: null,
+                            selectedExamples: [],
+                            addOnIds: [],
+                            summary: '',
+                            userEdited: false
+                          });
+                        }}
+                      >
+                        <div className="emoji">{level.emoji}</div>
+                        <div className="label">{level.shortLabel}</div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               {behaviourForm.sliderLevel !== null && (
@@ -612,9 +640,17 @@ const CoachNotesV2 = ({
             {behaviourForm.sliderLevel !== null && (
               <>
                 <h3>Step 2 · What best matches?</h3>
-                <p className="helper-text" style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem', marginBottom: '1rem' }}>
-                  Select one main behaviour or capacity moment. Pick the closest match — you can add more context afterwards.
-                </p>
+<p className="helper-text" style={{ 
+  fontSize: '0.75rem', 
+  color: behaviourForm.noteId !== null ? '#7c3aed' : '#6b7280',
+  marginTop: '0.25rem', 
+  marginBottom: '1rem',
+  fontStyle: behaviourForm.noteId !== null ? 'italic' : 'normal'
+}}>
+  {behaviourForm.noteId !== null 
+    ? BEHAVIOUR_NOTES[behaviourForm.sliderLevel]?.find(n => n.id === behaviourForm.noteId)?.tooltip
+    : 'Select one main behaviour or capacity moment. Pick the closest match — you can add more context afterwards.'}
+</p>
                 <div className="form-group">
                   <div className="button-grid">
                     {(BEHAVIOUR_NOTES[behaviourForm.sliderLevel] || []).map(note => (
@@ -885,9 +921,17 @@ const CoachNotesV2 = ({
             {basketballForm.categoryId && (
               <>
                 <h3>Step 2 · What best matches?</h3>
-                <p className="helper-text" style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem', marginBottom: '1rem' }}>
-                  Select the skill that best matches what you observed.
-                </p>
+<p className="helper-text" style={{ 
+  fontSize: '0.75rem', 
+  color: behaviourForm.noteId !== null ? '#7c3aed' : '#6b7280',
+  marginTop: '0.25rem', 
+  marginBottom: '1rem',
+  fontStyle: behaviourForm.noteId !== null ? 'italic' : 'normal'
+}}>
+  {behaviourForm.noteId !== null 
+    ? BEHAVIOUR_NOTES[behaviourForm.sliderLevel]?.find(n => n.id === behaviourForm.noteId)?.tooltip
+    : 'Select one main behaviour or capacity moment. Pick the closest match — you can add more context afterwards.'}
+</p>
                 <div className="form-group">
                   <div className="button-grid">
                     {(BASKETBALL_SKILLS[basketballForm.categoryId] || []).map(skill => (

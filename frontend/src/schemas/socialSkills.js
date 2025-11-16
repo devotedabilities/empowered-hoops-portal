@@ -121,7 +121,7 @@ export const BEHAVIOUR_NOTES = {
       id: 10,
       label: "Social withdrawal (moderate)",
       tooltip: "Used when the participant avoided interaction or disengaged socially.",
-      summaryTemplate: "Participant withdrew from social interaction and needed prompts, options, or adaptations to re-engage",
+      summaryTemplate: "Participant withdrew from social interaction and needed prompts to re-engage",
       domains: ["socialInteraction", "selfManagement"],
       skills: ["initiatingInteraction", "selfAdvocacy", "peerInteraction", "helpSeeking", "reEngagement"],
       examples: [
@@ -180,7 +180,7 @@ export const BEHAVIOUR_NOTES = {
       id: 18,
       label: "Required light prompting or encouragement",
       tooltip: "Used when the participant needed gentle prompts but responded well.",
-      summaryTemplate: "Participant required light prompting or encouragement to stay engaged",
+      summaryTemplate: "Participant required light prompting and encouragement to stay engaged",
       domains: ["socialInteraction", "communication", "selfManagement"],
       skills: ["initiatingInteraction", "communicationInitiation", "stayingOnTask", "transitions"],
       examples: [
@@ -270,7 +270,7 @@ export const BEHAVIOUR_NOTES = {
       id: 2,
       label: "Teamwork / cooperation",
       tooltip: "Used when the participant contributed constructively to group tasks or supported teammates.",
-      summaryTemplate: "Participant worked cooperatively with peers and contributed to shared tasks or group drills",
+      summaryTemplate: "Participant worked cooperatively with peers and contributed to shared tasks",
       domains: ["socialInteraction", "communityParticipation"],
       skills: ["cooperation", "workingInATeam", "peerInteraction", "problemSolving"],
       examples: [
@@ -284,7 +284,7 @@ export const BEHAVIOUR_NOTES = {
       id: 3,
       label: "Followed instructions well",
       tooltip: "Used when the participant followed verbal/visual instructions with minimal prompts.",
-      summaryTemplate: "Participant followed verbal/visual instructions with minimal prompting",
+      summaryTemplate: "Participant followed verbal and visual instructions with minimal prompting",
       domains: ["learning"],
       skills: ["followingInstructions", "processingInformation", "workingMemory"],
       examples: [
@@ -298,7 +298,7 @@ export const BEHAVIOUR_NOTES = {
       id: 4,
       label: "Regulated well",
       tooltip: "Used when the participant stayed calm or used strategies to manage emotions.",
-      summaryTemplate: "Participant maintained emotional regulation or used agreed strategies to remain calm and engaged",
+      summaryTemplate: "Participant maintained emotional regulation and used agreed strategies to remain calm and engaged",
       domains: ["selfManagement"],
       skills: ["emotionalRegulation", "calmingStrategies", "distressTolerance", "flexibilityAdaptability"],
       examples: [
@@ -312,7 +312,7 @@ export const BEHAVIOUR_NOTES = {
       id: 5,
       label: "Took turns / shared",
       tooltip: "Used when the participant waited, shared equipment, or took turns appropriately.",
-      summaryTemplate: "Participant demonstrated turn-taking and shared equipment/space appropriately",
+      summaryTemplate: "Participant demonstrated turn-taking and shared equipment and space appropriately",
       domains: ["socialInteraction"],
       skills: ["turnTaking", "sharing", "peerInteraction"],
       examples: [
@@ -345,7 +345,7 @@ export const ADD_ON_OPTIONS = [
     id: 20,
     label: "Support to re-join group",
     tooltip: "Used when the coach supported the participant to return to the activity.",
-    summaryTemplate: "Coach supported the participant to return to the activity safely after leaving, avoiding, or declining",
+    summaryTemplate: "Coach supported the participant to return to the activity safely after avoiding it",
     domains: ["selfManagement", "socialInteraction"],
     skills: ["reEngagement", "transitions", "helpSeeking"],
     examples: [
@@ -359,7 +359,7 @@ export const ADD_ON_OPTIONS = [
     id: 21,
     label: "Needed coach modelling",
     tooltip: "Used when the coach demonstrated the expected behaviour before the participant attempted it.",
-    summaryTemplate: "Coach modelling was used to demonstrate the expected behaviour or social cue",
+    summaryTemplate: "Coach modelling was used to demonstrate the expected behaviour and social cue",
     domains: ["learning", "socialInteraction"],
     skills: ["readingSocialCues", "followingInstructions", "processingInformation"],
     examples: [
@@ -373,7 +373,7 @@ export const ADD_ON_OPTIONS = [
     id: 22,
     label: "Needed frequent prompts",
     tooltip: "Used when multiple reminders were needed to stay engaged.",
-    summaryTemplate: "Frequent verbal or visual prompts were required to maintain engagement",
+    summaryTemplate: "Frequent verbal and visual prompts were required to maintain engagement",
     domains: ["learning"],
     skills: ["stayingOnTask", "followingInstructions", "independentEngagement"],
     examples: [
