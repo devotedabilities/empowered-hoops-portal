@@ -99,7 +99,7 @@ function TermTracker({ user }) {
       sessionEndTime: '',
       startDate: '',
       numberOfSessions: 10,
-      assignedCoaches: [], // NEW: Reset assigned coaches
+      assignedCoaches: [],
     });
     setAthletes([]);
     setResult(null);

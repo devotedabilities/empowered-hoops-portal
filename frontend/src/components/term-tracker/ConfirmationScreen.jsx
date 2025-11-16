@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { useState } from 'react';
-import ExportableSummary from '../ExportableSummary';  // ← ADD THIS
+import ExportableSummary from '../ExportableSummary';
+import { useAuth } from '../../contexts/AuthContext';
 
 function ConfirmationScreen({ result, termConfig, athletes, onCreateAnother }) {
-  // Add confetti or celebration effect on mount
+  const { isAdmin } = useAuth();
+  
   useEffect(() => {
-    // Optional: Add celebration animation
     console.log('Term tracker created successfully!', result);
   }, [result]);
 
@@ -21,21 +22,18 @@ function ConfirmationScreen({ result, termConfig, athletes, onCreateAnother }) {
   return (
     <div className="confirmation-container">
       <div className="confirmation-card">
-        {/* Success Icon */}
         <div className="success-icon">
           <div className="checkmark-circle">
             <div className="checkmark">✓</div>
           </div>
         </div>
 
-        {/* Success Message */}
         <h1 className="success-title">Term Tracker Created!</h1>
         <p className="success-message">
           Your attendance and payment tracker has been successfully created and is
           ready to use.
         </p>
 
-        {/* Term Summary */}
         <div className="term-summary">
           <h2>📋 Term Summary</h2>
           <div className="summary-grid">
@@ -75,36 +73,34 @@ function ConfirmationScreen({ result, termConfig, athletes, onCreateAnother }) {
           </div>
         </div>
 
-            
-
-        {/* Spreadsheet Link */}
-        <div className="spreadsheet-link-section">
-          <h3>📊 Your Spreadsheet</h3>
-          <p className="link-description">
-            Click below to open your new term tracker spreadsheet:
-          </p>
-          <a
-            href={result.sheetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-spreadsheet"
-          >
-            <span className="spreadsheet-icon">📊</span>
-            Open Spreadsheet
-            <span className="external-icon">↗</span>
-          </a>
-          <p className="link-help">
-            The spreadsheet has been saved to your Empowered Hoops Shared Drive.
-          </p>
-        </div>
+        {isAdmin() && (
+          <div className="spreadsheet-link-section">
+            <h3>📊 Your Spreadsheet</h3>
+            <p className="link-description">
+              Click below to open your new term tracker spreadsheet:
+            </p>
+            <a
+              href={result.sheetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-spreadsheet"
+            >
+              <span className="spreadsheet-icon">📊</span>
+              Open Spreadsheet
+              <span className="external-icon">↗</span>
+            </a>
+            <p className="link-help">
+              The spreadsheet has been saved to your Empowered Hoops Shared Drive.
+            </p>
+          </div>
+        )}
 
         <ExportableSummary 
-  termConfig={termConfig}
-  athletes={athletes || []}
-  spreadsheetUrl={result.sheetUrl}
-/>
+          termConfig={termConfig}
+          athletes={athletes || []}
+          spreadsheetUrl={result.sheetUrl}
+        />
 
-        {/* Next Steps */}
         <div className="next-steps">
           <h3>✅ Next Steps</h3>
           <ol className="steps-list">
@@ -127,7 +123,6 @@ function ConfirmationScreen({ result, termConfig, athletes, onCreateAnother }) {
           </ol>
         </div>
 
-        {/* Action Buttons */}
         <div className="confirmation-actions">
           <button
             type="button"
@@ -141,7 +136,6 @@ function ConfirmationScreen({ result, termConfig, athletes, onCreateAnother }) {
           </a>
         </div>
 
-        {/* Additional Info */}
         <div className="additional-info">
           <p className="info-text">
             <strong>💡 Pro Tip:</strong> Bookmark the spreadsheet for quick access

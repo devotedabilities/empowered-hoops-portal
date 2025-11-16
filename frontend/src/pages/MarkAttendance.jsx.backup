@@ -1,16 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import './MarkAttendance.css';
-import CoachNotesV2 from '../components/CoachNotesV2';
-import { useAuth } from '../contexts/AuthContext';
-import SessionCoaches from '../components/SessionCoaches';
-
+import CoachNotes from '../components/CoachNotes';
+import { noteToDisplayText } from '../utils/coachNotesSchema';
 
 function MarkAttendance() {
   const { trackerId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAdmin, currentUser } = useAuth();
   
   const { trackerName, programType, spreadsheetId } = location.state || {};
   
@@ -23,15 +20,15 @@ function MarkAttendance() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [termCoaches, setTermCoaches] = useState([]);
-  const [sessionCoaches, setSessionCoaches] = useState({});
 
   // Coach notes state
   const [showNotesSection, setShowNotesSection] = useState(false);
   const [currentNoteAthlete, setCurrentNoteAthlete] = useState(null);
   const [athleteNotes, setAthleteNotes] = useState({});
   
+
+  // Generate session options (1-10)
+
 
   useEffect(() => {
     if (spreadsheetId) {
@@ -61,8 +58,6 @@ const fetchAttendanceData = async () => {
     if (data.success) {
       setAthletes(data.athletes);
       setSessions(data.sessions);
-      setTermCoaches(data.termCoaches || []);
-      setSessionCoaches(data.sessionCoaches || {});
       
       // Store term config for later use
       if (data.termConfig) {
@@ -92,12 +87,6 @@ const fetchAttendanceData = async () => {
   } finally {
     setLoading(false);
   }
-};
-
-const handleRefresh = async () => {
-  setRefreshing(true);
-  await fetchAttendanceData();
-  setRefreshing(false);
 };
 
  const toggleAttendance = (athleteId) => {
@@ -162,12 +151,66 @@ const handleSave = async () => {
   }
 };
 
+const handleNoteSave = (athleteId, noteObject) => {
+  setAthleteNotes(prev => ({
+    ...prev,
+    [athleteId]: noteObject
+  }));
+  setCurrentNoteAthlete(null);
+};
+
 const handleSkipNote = () => {
   setCurrentNoteAthlete(null);
 };
 
+const handleSaveAllNotes = async () => {
+  console.log('Saving all notes for session:', selectedSession);
+  setSaving(true);
+
+  try {
+    const response = await fetch(
+      'https://us-central1-empowered-hoops-term-tra-341d5.cloudfunctions.net/updateSessionNotes',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          spreadsheetId: spreadsheetId,
+          sheetName: programType,
+          sessionNumber: selectedSession,
+          notes: athleteNotes,
+          termConfig: termConfig,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to save notes');
+    }
+
+    const data = await response.json();
+
+    if (data.success) {
+      setSaveSuccess(true);
+      setShowNotesSection(false);
+      setAthleteNotes({});
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } else {
+      throw new Error(data.message || 'Failed to save notes');
+    }
+  } catch (err) {
+    console.error('Save notes error:', err);
+    setError('Failed to save notes: ' + err.message);
+  } finally {
+    setSaving(false);
+  }
+};
+
 const handleFinishWithoutNotes = () => {
   setShowNotesSection(false);
+  setAthleteNotes({});
 };
 
 const getAttendedAthletes = () => {
@@ -189,56 +232,43 @@ const getAttendedAthletes = () => {
         </div>
       </div>
 
-      <div className="session-selector">
-        <label>Session:</label>
-        <select
-          value={selectedSession}
-          onChange={(e) => setSelectedSession(e.target.value)}
-          className="session-select"
-        >
-          {sessions.length > 0 ? (
-            sessions.map(session => (
-              <option key={session.number} value={session.number}>
-                Session {session.number} - {session.formatted}
-              </option>
-            ))
-          ) : (
-            Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
-              <option key={num} value={num}>Session {num}</option>
-            ))
-          )}
-        </select>
-        
-        {isAdmin() && (
-          <button 
-            className="btn-open-sheet"
-            onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`, '_blank')}
-            title="Open spreadsheet in new tab"
-          >
-            📊 Open Spreadsheet
-          </button>
-        )}
+    <div className="session-selector">
+  <label>Session:</label>
+  <select
+    value={selectedSession}
+    onChange={(e) => setSelectedSession(e.target.value)}
+    className="session-select"
+  >
+    {sessions.length > 0 ? (
+      sessions.map(session => (
+        <option key={session.number} value={session.number}>
+          Session {session.number} - {session.formatted}
+        </option>
+      ))
+    ) : (
+      Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
+        <option key={num} value={num}>Session {num}</option>
+      ))
+    )}
+  </select>
+  
+  <button 
+    className="btn-refresh" 
+    onClick={fetchAttendanceData}
+    disabled={loading}
+    title="Refresh athlete list"
+  >
+    {loading ? '◷' : '🔄'} Refresh
+  </button>
 
-        <button
-          className="btn-refresh-data"
-          onClick={handleRefresh}
-          disabled={refreshing || loading}
-          title="Refresh athlete list from spreadsheet"
-        >
-          {refreshing ? '⏳' : '🔄'} Refresh
-        </button>
-      </div>
-
-      <SessionCoaches
-        sessionNumber={selectedSession}
-        termCoaches={termCoaches}
-        sessionCoaches={sessionCoaches[selectedSession]}
-        spreadsheetId={spreadsheetId}
-        programType={programType}
-        isAdmin={isAdmin()}
-        userEmail={currentUser?.email}
-        onUpdate={fetchAttendanceData}
-      />
+  <button 
+    className="btn-open-sheet"
+    onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`, '_blank')}
+    title="Open spreadsheet in new tab"
+  >
+    📊 Open Spreadsheet
+  </button>
+</div>
 
       {loading && (
         <div className="loading-state">
@@ -259,11 +289,11 @@ const getAttendedAthletes = () => {
             {athletes.map(athlete => (
               <div key={athlete.id} className="athlete-item">
                 <label className="athlete-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={attendance[athlete.id]?.[selectedSession] || false}
-                    onChange={() => toggleAttendance(athlete.id)}
-                  />
+                 <input
+  type="checkbox"
+  checked={attendance[athlete.id]?.[selectedSession] || false}
+  onChange={() => toggleAttendance(athlete.id)}
+/>
                   <span className="checkbox-custom"></span>
                   <span className="athlete-name">{athlete.name}</span>
                 </label>
@@ -271,32 +301,32 @@ const getAttendedAthletes = () => {
             ))}
           </div>
 
-          <div className="attendance-summary">
-            <p>
-              <strong>{Object.values(attendance).filter(sessions => sessions[selectedSession]).length}</strong> of{' '}
-              <strong>{athletes.length}</strong> athletes attended
-            </p>
-          </div>
+         <div className="attendance-summary">
+  <p>
+    <strong>{Object.values(attendance).filter(sessions => sessions[selectedSession]).length}</strong> of{' '}
+    <strong>{athletes.length}</strong> athletes attended
+  </p>
+</div>
 
-          <button
-            className="btn-save-attendance"
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? (
-              <>
-                <span className="spinner-small"></span> Saving...
-              </>
-            ) : (
-              '💾 Save Attendance'
-            )}
-          </button>
+<button
+  className="btn-save-attendance"
+  onClick={handleSave}
+  disabled={saving}
+>
+  {saving ? (
+    <>
+      <span className="spinner-small"></span> Saving...
+    </>
+  ) : (
+    '💾 Save Attendance'
+  )}
+</button>
 
-          {saveSuccess && (
-            <div className="success-toast">
-              🎉 Saved!
-            </div>
-          )}
+{saveSuccess && (
+  <div className="success-toast">
+    🎉 Saved!
+  </div>
+)}
         </>
       )}
 
@@ -306,7 +336,6 @@ const getAttendedAthletes = () => {
           <div className="notes-header">
             <h2>📝 Session Notes</h2>
             <p>Add notes for athletes who attended Session {selectedSession}</p>
-            <p className="notes-info">💡 Notes save automatically when you click save in the modal</p>
           </div>
 
           <div className="notes-athlete-list">
@@ -314,12 +343,17 @@ const getAttendedAthletes = () => {
               <div key={athlete.id} className="note-athlete-item">
                 <div className="note-athlete-info">
                   <span className="note-athlete-name">{athlete.name}</span>
+                  {athleteNotes[athlete.id] && (
+                    <span className="note-preview">
+                      {noteToDisplayText(athleteNotes[athlete.id])}
+                    </span>
+                  )}
                 </div>
                 <button
                   className="btn-add-note"
                   onClick={() => setCurrentNoteAthlete(athlete)}
                 >
-                  ➕ Add Note
+                  {athleteNotes[athlete.id] ? '✏️ Edit Note' : '➕ Add Note'}
                 </button>
               </div>
             ))}
@@ -330,7 +364,20 @@ const getAttendedAthletes = () => {
               className="btn-finish-without-notes"
               onClick={handleFinishWithoutNotes}
             >
-              ✅ Finish
+              Finish Without Notes
+            </button>
+            <button
+              className="btn-save-all-notes"
+              onClick={handleSaveAllNotes}
+              disabled={Object.keys(athleteNotes).length === 0 || saving}
+            >
+              {saving ? (
+                <>
+                  <span className="spinner-small"></span> Saving Notes...
+                </>
+              ) : (
+                `💾 Save ${Object.keys(athleteNotes).length} Note${Object.keys(athleteNotes).length !== 1 ? 's' : ''}`
+              )}
             </button>
           </div>
         </div>
@@ -338,15 +385,16 @@ const getAttendedAthletes = () => {
 
       {/* Coach Notes Modal */}
       {currentNoteAthlete && (
-        <CoachNotesV2
-          isOpen={!!currentNoteAthlete}
-          onClose={handleSkipNote}
-          athlete={currentNoteAthlete}
-          sessionNumber={selectedSession}
-          spreadsheetId={spreadsheetId}
-          sheetName={programType}
-          termConfig={termConfig}
-        />
+        <div className="modal-overlay" onClick={handleSkipNote}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <CoachNotes
+              athleteName={currentNoteAthlete.name}
+              onNoteSave={(noteObj) => handleNoteSave(currentNoteAthlete.id, noteObj)}
+              onCancel={handleSkipNote}
+              initialNote={athleteNotes[currentNoteAthlete.id]}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
