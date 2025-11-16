@@ -2,6 +2,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 const { google } = require('googleapis');
 const nodemailer = require('nodemailer');
 const { sendWelcomeEmail: sendWelcomeEmailHelper } = require('./welcomeEmail');
+const { CONFIG } = require('./config/constants');
 require('dotenv').config();
 
 const admin = require('firebase-admin');
@@ -9,15 +10,6 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 const db = admin.firestore();
-
-// ============================================
-// CONFIGURATION - YOUR SPECIFIC VALUES
-// ============================================
-const CONFIG = {
-  TEMPLATE_SPREADSHEET_ID: '15wTazkxoURaqHk9CTSbBxQr_SUZ38-uJSanPE1PtM0g',
-  SERVICE_ACCOUNT_EMAIL: 'term-tracker-service@empowered-hoops-term-tracker.iam.gserviceaccount.com',
-  ADMIN_EMAIL: 'info@devotedabilities.com',
-};
 
 // ============================================
 // GOOGLE AUTHENTICATION
